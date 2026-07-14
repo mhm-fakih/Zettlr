@@ -1,0 +1,240 @@
+/**
+ * @ignore
+ * BEGIN HEADER
+ *
+ * Contains:        Writer index tests
+ * CVM-Role:        Test
+ * Maintainer:      Writer fork
+ * License:         GNU GPL v3
+ *
+ * Description:     Tests the writer index parser (structural includes,
+ *                  headings, TODOs) and the manuscript tree builder.
+ *
+ * END HEADER
+ */
+
+import { strictEqual, deepStrictEqual, ok } from 'assert'
+import { parseWriterFile, scanTodos } from 'source/app/service-providers/writer/parse-writer-file'
+import { buildManuscriptTree, type IncludeResolver } from 'source/app/service-providers/writer/build-manuscript-tree'
+import type { WriterFileEntry } from 'source/types/common/writer'
+
+describe('Writer#parseWriterFile()', function () {
+  it('detects structural includes and ignores non-structural embeds', function () {
+    const content = `# Master
+
+![](notes/01-intro.md)
+
+![[notes/02-sources]]
+
+![Alt text](notes/03-with-title.md "A title")
+
+![](diagram.png)
+
+Inline mention ![](notes/inline.md) inside a paragraph.
+
+- ![](notes/in-list.md)
+
+> ![](notes/in-quote.md)
+
+\`\`\`
+![](notes/in-fence.md)
+\`\`\`
+
+[Just a link](notes/plain-link.md)
+`
+    const entry = parseWriterFile('/ws/master.md', content)
+    deepStrictEqual(entry.includes.map(i => i.target), [
+      'notes/01-intro.md',
+      'notes/02-sources',
+      'notes/03-with-title.md'
+    ])
+    deepStrictEqual(entry.includes.map(i => i.line), [ 3, 5, 7 ])
+  })
+
+  it('extracts headings with levels, lines, and word counts', function () {
+    const content = `# One
+
+two words
+
+## Nested
+
+three more words
+
+# Two
+
+end
+`
+    const entry = parseWriterFile('/ws/file.md', content)
+    deepStrictEqual(entry.headings.map(h => [ h.level, h.text, h.line ]), [
+      [ 1, 'One', 1 ],
+      [ 2, 'Nested', 5 ],
+      [ 1, 'Two', 9 ]
+    ])
+    // Section of '# One' includes '## Nested' subsection; both end at '# Two'
+    ok(entry.headings[0].words > entry.headings[1].words)
+    strictEqual(entry.words > 0, true)
+  })
+
+  it('parses Arabic headings correctly', function () {
+    const entry = parseWriterFile('/ws/ar.md', '# مقدمة في التحرير\n\nنص عربي هنا\n')
+    deepStrictEqual(entry.headings.map(h => h.text), ['مقدمة في التحرير'])
+  })
+})
+
+describe('Writer#scanTodos()', function () {
+  it('harvests tags from prose, comments, and lists, but not fences or frontmatter', function () {
+    const content = `---
+title: TODO: not this one
+---
+
+TODO: plain prose todo
+
+<!-- FIXME: in a comment -->
+
+- QUESTION: in a list item
+
+Some sentence with SOURCE: find a citation
+
+\`\`\`js
+// TODO: not this one either
+\`\`\`
+`
+    const todos = scanTodos(content)
+    deepStrictEqual(todos.map(t => [ t.tag, t.message ]), [
+      [ 'TODO', 'plain prose todo' ],
+      [ 'FIXME', 'in a comment' ],
+      [ 'QUESTION', 'in a list item' ],
+      [ 'SOURCE', 'find a citation' ]
+    ])
+    deepStrictEqual(todos.map(t => t.line), [ 5, 7, 9, 11 ])
+  })
+
+  it('supports custom tags', function () {
+    const todos = scanTodos('NB: note this\n', ['NB'])
+    deepStrictEqual(todos.map(t => [ t.tag, t.message ]), [[ 'NB', 'note this' ]])
+  })
+})
+
+describe('Writer#buildManuscriptTree()', function () {
+  function makeEntry (path: string, partial: Partial<WriterFileEntry>): [string, WriterFileEntry] {
+    return [ path, {
+      path,
+      name: path.split('/').pop() ?? path,
+      words: 0,
+      headings: [],
+      includes: [],
+      todos: [],
+      ...partial
+    } ]
+  }
+
+  const resolver: IncludeResolver = (source, target) => {
+    if (target.includes('missing')) {
+      return { error: 'missing' }
+    }
+    if (target.includes('ambiguous')) {
+      return { error: 'ambiguous' }
+    }
+    const dir = source.slice(0, source.lastIndexOf('/'))
+    return { path: `${dir}/${target}` }
+  }
+
+  it('interleaves headings and includes and nests included files under sections', function () {
+    const entries = new Map<string, WriterFileEntry>([
+      makeEntry('/ws/master.md', {
+        words: 10,
+        headings: [
+          { level: 1, text: 'Part One', line: 1, words: 10 },
+          { level: 1, text: 'Part Two', line: 7, words: 0 }
+        ],
+        includes: [
+          { target: 'ch1.md', line: 3 },
+          { target: 'ch2.md', line: 9 }
+        ]
+      }),
+      makeEntry('/ws/ch1.md', {
+        words: 100,
+        headings: [{ level: 2, text: 'Background', line: 1, words: 100 }]
+      }),
+      makeEntry('/ws/ch2.md', { words: 50 })
+    ])
+
+    const tree = buildManuscriptTree('/ws/master.md', entries, resolver)
+    ok(tree !== null)
+    strictEqual(tree.type, 'file')
+    // Root words = own + included descendants
+    strictEqual(tree.words, 160)
+    // Two part headings at the top level
+    deepStrictEqual(tree.children.map(c => [ c.type, c.label ]), [
+      [ 'heading', 'Part One' ],
+      [ 'heading', 'Part Two' ]
+    ])
+    // The includes nest under their respective sections
+    deepStrictEqual(tree.children[0].children.map(c => [ c.type, c.label ]), [[ 'file', 'ch1.md' ]])
+    deepStrictEqual(tree.children[1].children.map(c => [ c.type, c.label ]), [[ 'file', 'ch2.md' ]])
+    // The included file's own headings are its children
+    deepStrictEqual(tree.children[0].children[0].children.map(c => c.label), ['Background'])
+  })
+
+  it('marks missing and ambiguous targets as error nodes', function () {
+    const entries = new Map<string, WriterFileEntry>([
+      makeEntry('/ws/master.md', {
+        includes: [
+          { target: 'missing.md', line: 1 },
+          { target: 'ambiguous.md', line: 2 }
+        ]
+      })
+    ])
+
+    const tree = buildManuscriptTree('/ws/master.md', entries, resolver)
+    ok(tree !== null)
+    deepStrictEqual(tree.children.map(c => c.error), [ 'missing', 'ambiguous' ])
+  })
+
+  it('detects cycles instead of hanging', function () {
+    const entries = new Map<string, WriterFileEntry>([
+      makeEntry('/ws/a.md', { includes: [{ target: 'b.md', line: 1 }] }),
+      makeEntry('/ws/b.md', { includes: [{ target: 'a.md', line: 1 }] })
+    ])
+
+    const tree = buildManuscriptTree('/ws/a.md', entries, resolver)
+    ok(tree !== null)
+    const b = tree.children[0]
+    strictEqual(b.label, 'b.md')
+    strictEqual(b.error, undefined)
+    strictEqual(b.children[0].error, 'cycle')
+  })
+
+  it('marks self-includes as cycles', function () {
+    const entries = new Map<string, WriterFileEntry>([
+      makeEntry('/ws/a.md', { includes: [{ target: 'a.md', line: 1 }] })
+    ])
+
+    const tree = buildManuscriptTree('/ws/a.md', entries, resolver)
+    ok(tree !== null)
+    strictEqual(tree.children[0].error, 'cycle')
+  })
+
+  it('caps the include depth at 8', function () {
+    const entries = new Map<string, WriterFileEntry>(
+      Array.from({ length: 12 }, (_, i) => makeEntry(`/ws/f${i}.md`, {
+        includes: i < 11 ? [{ target: `f${i + 1}.md`, line: 1 }] : []
+      }))
+    )
+
+    const tree = buildManuscriptTree('/ws/f0.md', entries, resolver)
+    ok(tree !== null)
+    let node = tree
+    let depth = 0
+    while (node.children.length > 0 && node.children[0].error === undefined) {
+      node = node.children[0]
+      depth++
+    }
+    strictEqual(node.children[0]?.error, 'depth')
+    strictEqual(depth, 7) // f0 (depth 0) … f7; f8 would be depth 8 -> blocked
+  })
+
+  it('returns null for unindexed roots', function () {
+    strictEqual(buildManuscriptTree('/nope.md', new Map(), resolver), null)
+  })
+})

@@ -68,6 +68,7 @@
             <MainSidebar
               v-on:move-section="moveSection($event)"
               v-on:jump-to-line="genericJtl($event)"
+              v-on:jtl="jtl($event.filePath, $event.lineNumber, false)"
             ></MainSidebar>
           </template>
         </SplitView>

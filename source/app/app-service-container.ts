@@ -28,6 +28,7 @@ import LogProvider from '@providers/log'
 import MenuProvider from '@providers/menu'
 import type ProviderContract from '@providers/provider-contract'
 import RecentDocumentsProvider from '@providers/recent-docs'
+import WriterIndexProvider from '@providers/writer'
 import StatsProvider from '@providers/stats'
 import TagProvider from '@providers/tags'
 import TargetProvider from '@providers/targets'
@@ -88,6 +89,7 @@ export class AppServiceContainer {
   private readonly _tagProvider: TagProvider
   private readonly _targetProvider: TargetProvider
   private readonly _trayProvider: TrayProvider
+  private readonly _writerIndexProvider: WriterIndexProvider
   private readonly _updateProvider: UpdateProvider
   private readonly _windowProvider: WindowProvider
   private readonly _fsal: FSAL
@@ -118,6 +120,7 @@ export class AppServiceContainer {
 
     this._targetProvider = new TargetProvider(this._logProvider, this._fsal)
     this._linkProvider = new LinkProvider(this._logProvider, this._configProvider, this._fsal)
+    this._writerIndexProvider = new WriterIndexProvider(this._logProvider, this._configProvider, this._fsal)
     this._searchProvider = new SearchProvider(this._logProvider, this._fsal, this._configProvider)
     
     // The document provider accesses only the FSAL in its constructor
@@ -182,6 +185,7 @@ export class AppServiceContainer {
 
     await this._informativeBoot(this._targetProvider, 'TargetProvider')
     await this._informativeBoot(this._linkProvider, 'LinkProvider')
+    await this._informativeBoot(this._writerIndexProvider, 'WriterIndexProvider')
     await this._informativeBoot(this._searchProvider, 'SearchProvider')
 
     // Boot the commands before the window provider to ensure the handler for
@@ -229,6 +233,7 @@ export class AppServiceContainer {
   public get css (): CssProvider { return this._cssProvider }
   public get dictionary (): DictionaryProvider { return this._dictionaryProvider }
   public get links (): LinkProvider { return this._linkProvider }
+  public get writerIndex (): WriterIndexProvider { return this._writerIndexProvider }
   public get log (): LogProvider { return this._logProvider }
   public get menu (): MenuProvider { return this._menuProvider }
   public get recentDocs (): RecentDocumentsProvider { return this._recentDocsProvider }
@@ -259,6 +264,7 @@ export class AppServiceContainer {
     await this._safeShutdown(this._cssProvider, 'CSSProvider')
     await this._safeShutdown(this._targetProvider, 'TargetProvider')
     await this._safeShutdown(this._linkProvider, 'LinkProvider')
+    await this._safeShutdown(this._writerIndexProvider, 'WriterIndexProvider')
     await this._safeShutdown(this._tagProvider, 'TagProvider')
     await this._safeShutdown(this._searchProvider, 'SearchProvider')
     await this._safeShutdown(this._menuProvider, 'MenuProvider')

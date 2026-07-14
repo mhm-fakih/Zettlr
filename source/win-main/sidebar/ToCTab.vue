@@ -8,6 +8,7 @@
       v-bind:key="idx"
       v-bind:data-line="entry.line"
       v-bind:class="'toc-entry-container toc-heading-' + entry.level"
+      v-bind:dir="tocDirection"
       draggable="true"
       v-on:click="emit('jump-to-line', entry.line)"
       v-on:dragstart="startDragging"
@@ -36,6 +37,7 @@ import { type AnyDescriptor } from '@dts/common/fsal'
 import { md2html } from '@common/modules/markdown-utils'
 import { useConfigStore, useDocumentTreeStore, useWindowStateStore } from 'source/pinia'
 import { sanitizeHTML } from 'source/common/util/sanitize-html'
+import { resolveDocumentDirection } from 'source/common/util/text-direction'
 
 const ipcRenderer = window.ipc
 const windowStateStore = useWindowStateStore()
@@ -78,6 +80,19 @@ const titleOrTocLabel = computed(() => {
   } else {
     return trans('Table of contents')
   }
+})
+
+/**
+ * The document's base direction: frontmatter (direction/lang) first, then the
+ * first strong character of the title respectively first heading. RTL
+ * documents mirror the ToC rows, putting the section numbers on the right.
+ */
+const tocDirection = computed<'ltr'|'rtl'>(() => {
+  const descriptor = activeFileDescriptor.value
+  const fallback = (descriptor !== null && descriptor.type === 'file' ? descriptor.yamlTitle ?? descriptor.firstHeading : undefined) ??
+    tableOfContents.value?.[0]?.text ?? ''
+  const frontmatter = descriptor !== null && descriptor.type === 'file' ? descriptor.frontmatter : null
+  return resolveDocumentDirection(frontmatter, fallback)
 })
 
 const activeFile = computed(() => documentTreeStore.lastLeafActiveFile)
@@ -227,12 +242,13 @@ function findEndOfEntry (originalToLine: number): number|undefined {
 .toc-entry-container {
   border-bottom: 2px solid transparent;
 
-  &.toc-heading-1 { margin-left: 0px; }
-  &.toc-heading-2 { margin-left: 10px; }
-  &.toc-heading-3 { margin-left: 20px; }
-  &.toc-heading-4 { margin-left: 30px; }
-  &.toc-heading-5 { margin-left: 40px; }
-  &.toc-heading-6 { margin-left: 50px; }
+  // Logical margins so RTL documents indent from the right
+  &.toc-heading-1 { margin-inline-start: 0px; }
+  &.toc-heading-2 { margin-inline-start: 10px; }
+  &.toc-heading-3 { margin-inline-start: 20px; }
+  &.toc-heading-4 { margin-inline-start: 30px; }
+  &.toc-heading-5 { margin-inline-start: 40px; }
+  &.toc-heading-6 { margin-inline-start: 50px; }
 
   &.toc-drop-effect {
     border-bottom-color: rgb(40, 100, 255);

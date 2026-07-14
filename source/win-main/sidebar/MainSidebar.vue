@@ -1,21 +1,46 @@
 <template>
   <div id="sidebar">
-    <TabBar
-      v-bind:tabs="tabs"
-      v-bind:current-tab="currentTab"
-      v-on:tab="setCurrentTab($event)"
-    ></TabBar>
-
-    <!-- Now the tab containers -->
+    <!-- The sidebar stacks several collapsible panels (writer fork; replaces
+    the upstream tab bar) -->
     <div id="sidebar-tab-container">
-      <ToCTab
-        v-show="currentTab === 'toc'"
-        v-on:move-section="emit('move-section', $event)"
-        v-on:jump-to-line="emit('jump-to-line', $event)"
-      ></ToCTab>
-      <ReferencesTab v-show="currentTab === 'references'"></ReferencesTab>
-      <RelatedFilesTab v-show="currentTab === 'relatedFiles'"></RelatedFilesTab>
-      <OtherFilesTab v-show="currentTab === 'attachments'"></OtherFilesTab>
+      <SidebarPanel
+        v-bind:label="trans('Manuscript')"
+        v-bind:collapsed="isCollapsed('manuscript')"
+        v-on:toggle="togglePanel('manuscript')"
+      >
+        <ManuscriptTab v-on:jtl="emit('jtl', $event)"></ManuscriptTab>
+      </SidebarPanel>
+      <SidebarPanel
+        v-bind:label="trans('Table of contents')"
+        v-bind:collapsed="isCollapsed('toc')"
+        v-on:toggle="togglePanel('toc')"
+      >
+        <ToCTab
+          v-on:move-section="emit('move-section', $event)"
+          v-on:jump-to-line="emit('jump-to-line', $event)"
+        ></ToCTab>
+      </SidebarPanel>
+      <SidebarPanel
+        v-bind:label="trans('References')"
+        v-bind:collapsed="isCollapsed('references')"
+        v-on:toggle="togglePanel('references')"
+      >
+        <ReferencesTab></ReferencesTab>
+      </SidebarPanel>
+      <SidebarPanel
+        v-bind:label="trans('Related files')"
+        v-bind:collapsed="isCollapsed('relatedFiles')"
+        v-on:toggle="togglePanel('relatedFiles')"
+      >
+        <RelatedFilesTab></RelatedFilesTab>
+      </SidebarPanel>
+      <SidebarPanel
+        v-bind:label="trans('Other files')"
+        v-bind:collapsed="isCollapsed('attachments')"
+        v-on:toggle="togglePanel('attachments')"
+      >
+        <OtherFilesTab></OtherFilesTab>
+      </SidebarPanel>
     </div>
   </div>
 </template>
@@ -36,52 +61,43 @@
  */
 
 import { trans } from '@common/i18n-renderer'
-import TabBar from '@common/vue/TabBar.vue'
-import { computed } from 'vue'
+import { reactive } from 'vue'
 import ToCTab from './ToCTab.vue'
 import ReferencesTab from './ReferencesTab.vue'
 import RelatedFilesTab from './RelatedFilesTab.vue'
 import OtherFilesTab from './OtherFilesTab.vue'
-import { useConfigStore } from 'source/pinia'
+import SidebarPanel from './SidebarPanel.vue'
+import ManuscriptTab from './writer/ManuscriptTab.vue'
 
-const configStore = useConfigStore()
+const COLLAPSED_PANELS_KEY = 'sidebar-collapsed-panels'
 
 const emit = defineEmits<{
   (e: 'move-section', data: { from: number, to: number }): void
   (e: 'jump-to-line', line: number): void
+  (e: 'jtl', data: { filePath: string, lineNumber: number }): void
 }>()
 
-const currentTab = computed(() => configStore.config.window.currentSidebarTab)
+// References, related and other files start collapsed unless the user has
+// toggled them before; the state persists across restarts.
+const collapsedPanels = reactive<Record<string, boolean>>(loadCollapsedPanels())
 
-const tabs = [
-  {
-    icon: 'indent',
-    id: 'toc',
-    target: 'sidebar-toc',
-    label: trans('Table of contents')
-  },
-  {
-    icon: 'book',
-    id: 'references',
-    target: 'sidebar-bibliography',
-    label: trans('References')
-  },
-  {
-    icon: 'file-group',
-    id: 'relatedFiles',
-    target: 'sidebar-related-files',
-    label: trans('Related files')
-  },
-  {
-    icon: 'paperclip',
-    id: 'attachments',
-    target: 'sidebar-files',
-    label: trans('Other files')
+function loadCollapsedPanels (): Record<string, boolean> {
+  const defaults = { references: true, relatedFiles: true, attachments: true }
+  try {
+    const stored = window.localStorage.getItem(COLLAPSED_PANELS_KEY)
+    return stored !== null ? JSON.parse(stored) : defaults
+  } catch (err) {
+    return defaults
   }
-]
+}
 
-function setCurrentTab (which: string): void {
-  configStore.setConfigValue('window.currentSidebarTab', which)
+function isCollapsed (panel: string): boolean {
+  return collapsedPanels[panel] ?? false
+}
+
+function togglePanel (panel: string): void {
+  collapsedPanels[panel] = !isCollapsed(panel)
+  window.localStorage.setItem(COLLAPSED_PANELS_KEY, JSON.stringify(collapsedPanels))
 }
 </script>
 
