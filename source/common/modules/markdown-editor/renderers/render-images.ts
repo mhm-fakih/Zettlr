@@ -18,6 +18,7 @@ import { EditorView, WidgetType } from '@codemirror/view'
 import { type EditorState } from '@codemirror/state'
 import { configField } from '../util/configuration'
 import makeValidUri from '@common/util/make-valid-uri'
+import { hasMarkdownExt } from '@common/util/file-extention-checks'
 import { linkImageMenu } from '../context-menu/link-image-menu'
 import { trans } from '@common/i18n-renderer'
 import clickAndSelect from './click-and-select'
@@ -329,6 +330,12 @@ function createWidget (state: EditorState, node: SyntaxNodeRef): ImageWidget|und
   const alt = state.sliceDoc(marks[0].to, marks[1].from)
   const title = titleNode === null ? alt : state.sliceDoc(titleNode.from, titleNode.to)
   const url = state.sliceDoc(urlNode.from, urlNode.to)
+
+  // Writer fork: embeds targeting Markdown files are includes (structural or
+  // transclusions, spec §2), never images -- don't render a broken image.
+  if (hasMarkdownExt(url.split('#')[0].split('?')[0])) {
+    return undefined
+  }
 
   let data: ParsedPandocAttributes = {}
   const nextSibling = node.node.nextSibling
