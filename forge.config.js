@@ -307,7 +307,7 @@ module.exports = {
       name: '@electron-forge/maker-deb',
       config: {
         options: {
-          name: 'zettlr',
+          name: 'zettlr-nibras',
           bin: 'Zettlr', // See packagerConfig.name property,
           categories: [ 'Office', 'Education', 'Science' ],
           section: 'editors',
@@ -329,7 +329,7 @@ module.exports = {
       name: '@electron-forge/maker-rpm',
       config: {
         options: {
-          name: 'zettlr',
+          name: 'zettlr-nibras',
           bin: 'Zettlr', // See packagerConfig.name property,
           categories: [ 'Office', 'Education', 'Science' ],
           description: 'Your one-stop publication workbench.',
