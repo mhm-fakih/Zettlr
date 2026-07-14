@@ -25,16 +25,6 @@
         <CodesTab v-on:jtl="emit('jtl', $event)"></CodesTab>
       </SidebarPanel>
       <SidebarPanel
-        v-bind:label="trans('Table of contents')"
-        v-bind:collapsed="isCollapsed('toc')"
-        v-on:toggle="togglePanel('toc')"
-      >
-        <ToCTab
-          v-on:move-section="emit('move-section', $event)"
-          v-on:jump-to-line="emit('jump-to-line', $event)"
-        ></ToCTab>
-      </SidebarPanel>
-      <SidebarPanel
         v-bind:label="trans('References')"
         v-bind:collapsed="isCollapsed('references')"
         v-on:toggle="togglePanel('references')"
@@ -76,7 +66,6 @@
 
 import { trans } from '@common/i18n-renderer'
 import { reactive } from 'vue'
-import ToCTab from './ToCTab.vue'
 import ReferencesTab from './ReferencesTab.vue'
 import RelatedFilesTab from './RelatedFilesTab.vue'
 import OtherFilesTab from './OtherFilesTab.vue'
@@ -88,8 +77,6 @@ import CodesTab from './writer/CodesTab.vue'
 const COLLAPSED_PANELS_KEY = 'sidebar-collapsed-panels'
 
 const emit = defineEmits<{
-  (e: 'move-section', data: { from: number, to: number }): void
-  (e: 'jump-to-line', line: number): void
   (e: 'jtl', data: { filePath: string, lineNumber: number }): void
 }>()
 
@@ -132,9 +119,15 @@ body {
     display: flex;
     flex-direction: column;
 
+    // All panels are visible at once; expanded panels share the height and
+    // scroll internally (no scrolling of the bar as a whole)
     #sidebar-tab-container {
       padding: 10px;
-      overflow-y: auto;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     #open-dir-external {
@@ -153,32 +146,6 @@ body {
     h1 {
       font-size: 16px;
       margin: 10px 0;
-    }
-
-    // Table of Contents entries
-    div.toc-entry-container {
-      // Clever calculation based on the data-level property
-      // margin-left: calc(attr(data-level) * 10px);
-      display: flex;
-      margin-bottom: 10px;
-
-      div.toc-level {
-        flex-shrink: 1;
-        padding: 0px 5px;
-        font-weight: bold;
-        color: var(--system-accent-color, --c-primary);
-      }
-
-      div.toc-entry {
-        flex-grow: 3;
-        cursor: pointer;
-        &:hover { text-decoration: underline; }
-      }
-
-      div.toc-entry-active {
-        font-weight: bold;
-        color: var(--system-accent-color);
-      }
     }
 
     div.related-files-container {

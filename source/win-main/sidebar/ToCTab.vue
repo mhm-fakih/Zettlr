@@ -1,5 +1,5 @@
 <template>
-  <div role="tabpanel">
+  <div role="tabpanel" class="toc-tab">
     <!-- Table of Contents -->
     <h1>{{ titleOrTocLabel }}</h1>
     <!-- Show the ToC entries -->
@@ -238,6 +238,38 @@ function findEndOfEntry (originalToLine: number): number|undefined {
 </script>
 
 <style lang="less">
+div.toc-tab {
+  h1 {
+    font-size: 16px;
+    margin: 10px 0;
+  }
+}
+
+// Table of Contents entries (previously scoped to the right sidebar; the
+// panel now lives below the file manager)
+div.toc-entry-container {
+  display: flex;
+  margin-bottom: 10px;
+
+  div.toc-level {
+    flex-shrink: 1;
+    padding: 0px 5px;
+    font-weight: bold;
+    color: var(--system-accent-color, --c-primary);
+  }
+
+  div.toc-entry {
+    flex-grow: 3;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+
+  div.toc-entry-active {
+    font-weight: bold;
+    color: var(--system-accent-color);
+  }
+}
+
 // Add a neat little effect to the table of content entries as you drag them
 .toc-entry-container {
   border-bottom: 2px solid transparent;

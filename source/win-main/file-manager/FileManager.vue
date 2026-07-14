@@ -30,6 +30,20 @@
       ></cds-icon>
     </div>
 
+    <!-- The active note's table of contents, above the file explorer -->
+    <div id="file-manager-toc">
+      <SidebarPanel
+        v-bind:label="tocLabel"
+        v-bind:collapsed="tocCollapsed"
+        v-on:toggle="toggleToc"
+      >
+        <ToCTab
+          v-on:move-section="emit('move-section', $event)"
+          v-on:jump-to-line="emit('jump-to-line', $event)"
+        ></ToCTab>
+      </SidebarPanel>
+    </div>
+
     <!-- Filter field -->
     <div class="file-manager-filter">
       <input
@@ -70,6 +84,7 @@
         v-on:lock-file-tree="lockDirectoryTree()"
       ></FileList>
     </div>
+
   </div>
 </template>
 
@@ -89,6 +104,8 @@
  */
 import FileTree from './FileTree.vue'
 import FileList from './FileList.vue'
+import SidebarPanel from '../sidebar/SidebarPanel.vue'
+import ToCTab from '../sidebar/ToCTab.vue'
 import { trans } from '@common/i18n-renderer'
 import { nextTick, ref, computed, watch, onMounted } from 'vue'
 import { useConfigStore } from 'source/pinia'
@@ -97,6 +114,21 @@ import { useWorkspaceStore } from 'source/pinia/workspace-store'
 const ipcRenderer = window.ipc
 
 const props = defineProps<{ windowId: string }>()
+
+const emit = defineEmits<{
+  (e: 'move-section', data: { from: number, to: number }): void
+  (e: 'jump-to-line', line: number): void
+}>()
+
+// The ToC panel below the file explorer (writer fork)
+const TOC_COLLAPSED_KEY = 'file-manager-toc-collapsed'
+const tocLabel = trans('Table of contents')
+const tocCollapsed = ref<boolean>(window.localStorage.getItem(TOC_COLLAPSED_KEY) === 'true')
+
+function toggleToc (): void {
+  tocCollapsed.value = !tocCollapsed.value
+  window.localStorage.setItem(TOC_COLLAPSED_KEY, String(tocCollapsed.value))
+}
 
 const previous = ref<'file-list'|'directories'|undefined>(undefined) // Can be "file-list" or "directories"
 const lockedTree = ref<boolean>(false)
@@ -372,6 +404,11 @@ body #file-manager {
   // Use tabular numbers so that people who use date-based file naming schemes
   // can faster parse the filenames
   font-variant-numeric: tabular-nums;
+  // Filter + explorer + ToC panel stack vertically
+  display: flex;
+  flex-direction: column;
+
+  .file-manager-filter { flex: 0 0 auto; }
 
   #component-container {
     overflow-x: hidden;
@@ -379,7 +416,29 @@ body #file-manager {
     overflow-y: hidden;
     position: relative;
     width: 100%;
+    // The explorer takes all height the ToC panel below doesn't use
+    // (flex-basis overrides the platform-specific height rules below)
+    flex: 1 1 0px;
+    min-height: 0;
     height: calc(100% - 37px); // 100% minus the filter
+  }
+
+  // The note ToC above the file explorer
+  #file-manager-toc {
+    flex: 0 1 auto;
+    max-height: 45%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+
+    // Unlike in the right sidebar (where expanded panels share the full
+    // column), this panel is content-sized up to the 45% cap; when capped,
+    // the panel body scrolls.
+    section.sidebar-panel:not(.collapsed) {
+      flex: 0 1 auto;
+      min-height: 0;
+    }
   }
 
   &.expanded {

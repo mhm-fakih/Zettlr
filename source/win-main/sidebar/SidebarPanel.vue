@@ -38,24 +38,38 @@ const emit = defineEmits<{
 
 <style lang="less">
 body {
+  // Panels are stacked in a flex column: collapsed panels shrink to their
+  // header, expanded panels share the remaining height and scroll internally.
   section.sidebar-panel {
-    margin-bottom: 5px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 0 0 auto;
 
+    &:not(.collapsed) {
+      flex: 1 1 0;
+    }
+
+    // The whole header is one click target that toggles the panel
     header.sidebar-panel-header {
+      flex: 0 0 auto;
       display: flex;
       align-items: center;
       gap: 5px;
-      padding: 4px 6px;
+      padding: 6px 8px;
+      margin-bottom: 4px;
       font-size: 12px;
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       cursor: pointer;
       user-select: none;
-      position: sticky;
-      top: 0;
-      background-color: rgb(230, 230, 230);
-      z-index: 1;
+      background-color: rgba(128, 128, 128, 0.18);
+      border-radius: 4px;
+
+      &:hover {
+        background-color: rgba(128, 128, 128, 0.3);
+      }
 
       span.sidebar-panel-chevron {
         display: inline-block;
@@ -65,13 +79,10 @@ body {
     }
 
     div.sidebar-panel-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
       padding: 0 6px 10px 6px;
-    }
-  }
-
-  &.dark {
-    section.sidebar-panel header.sidebar-panel-header {
-      background-color: rgba(30, 30, 30, 1);
     }
   }
 }
