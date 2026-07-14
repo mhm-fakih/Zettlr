@@ -16,7 +16,7 @@ import { systemPreferences } from 'electron'
   */
 export function getSystemColors (): { accent: string, contrast: string } {
   const colorFallback = {
-    accent: '1cb27eff', // Fully opaque Zettlr green
+    accent: '253592ff', // Fully opaque dark blue (writer fork; upstream: Zettlr green 1cb27eff)
     contrast: 'ffffffff' // White as a contrast
   }
   const darkContrast = '333333ff'

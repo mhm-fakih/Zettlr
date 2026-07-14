@@ -1,5 +1,5 @@
 {
-  "name": "zettlr",
+  "name": "zettlr_nibras",
   "productName": "Zettlr",
   "homepage": "https://www.zettlr.com",
   "author": {
@@ -10,9 +10,9 @@
     "type": "git",
     "url": "git://github.com/Zettlr/Zettlr.git"
   },
-  "version": "4.6.0",
+  "version": "4.6.1",
   "license": "GPL-3.0",
-  "description": "Your One-Stop Publication Workbench",
+  "description": "A fork of Zettlr, optimized for Arabic typing and nested notes, TODOs, and (later) Nibras PKM integration.",
   "main": ".webpack/main",
   "type": "commonjs",
   "scripts": {
