@@ -374,3 +374,39 @@ Deepest text.
     ok(result.includes('circular include "a.md" skipped'))
   })
 })
+
+describe('Writer#assembleManuscript() field markers', function () {
+  it('strips @@ field @@ marker lines but keeps the section content', async function () {
+    const files: Record<string, string> = {
+      '/ws/note.md': `@@ summary @@
+Backup items
+
+@@ description @@
+backup profiles
+
+\`\`\`
+@@ in a fence @@
+\`\`\`
+`
+    }
+    const read = async (p: string): Promise<string> => files[p]
+    const res = (): { path?: string } => ({})
+
+    const stripped = await assembleManuscript('/ws/note.md', read, res, {
+      shiftHeadings: true,
+      stripTodos: true
+    })
+    ok(!stripped.includes('@@ summary @@'))
+    ok(!stripped.includes('@@ description @@'))
+    ok(stripped.includes('Backup items'))
+    ok(stripped.includes('backup profiles'))
+    ok(stripped.includes('@@ in a fence @@')) // fenced code is untouched
+
+    const kept = await assembleManuscript('/ws/note.md', read, res, {
+      shiftHeadings: true,
+      stripTodos: true,
+      stripFieldMarkers: false
+    })
+    ok(kept.includes('@@ summary @@'))
+  })
+})

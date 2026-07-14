@@ -117,6 +117,7 @@ export interface ConfigOptions {
     exportQmdWithQuarto: boolean
     manuscriptShiftHeadings: boolean
     manuscriptStripTodos: boolean
+    manuscriptStripFieldMarkers: boolean
     customCommands: Array<{ displayName: string, command: string }>
     selectedProfiles: Array<{ filePath: string, profile: string }>
     lastUsedProfile: string
@@ -338,6 +339,7 @@ export function getConfigTemplate (): ConfigOptions {
       exportQmdWithQuarto: false, // Whether .qmd-files should be exported with Quarto
       manuscriptShiftHeadings: true, // Shift heading levels of included files by nesting depth
       manuscriptStripTodos: true, // Strip TODO-annotation lines from manuscript exports
+      manuscriptStripFieldMarkers: true, // Strip @@ field @@ DB-sync marker lines from manuscript exports
       customCommands: [], // Custom commands that the user can use to run arbitrary exports
       selectedProfiles: [], // Remembers the last chosen exporter per file for easy re-exporting
       lastUsedProfile: 'HTML.yaml' // Remembers the last chosen exporter for easy re-exporting

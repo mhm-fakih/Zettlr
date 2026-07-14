@@ -95,6 +95,34 @@ force a direction.
   tokens, e.g. `T3Z` — exactly one letter, one digit, one letter, not embedded
   in a longer alphanumeric run. Any Unicode letters/digits work (`م٣ك`).
 
+## DB-sync field markers
+
+Notes generated from the database delimit their sections with marker lines of
+the form:
+
+```markdown
+@@ summary @@
+Backup items
+
+@@ description @@
+backup profiles
+
+@@ notes @@
+...
+```
+
+Contract:
+
+- A marker line matches `/^@@\s*[^@\n]+?\s*@@\s*$/` — `@@`, a field name,
+  `@@`, alone on its line. Everything until the next marker (or EOF) is that
+  field's content.
+- The markers are **inert for parsing**: not headings, not includes, not
+  TODOs/codes; the editor and the manuscript index treat them as plain text.
+- On **manuscript export** the marker lines are stripped by default (the
+  section content is kept) — configurable in Preferences > Import/Export.
+- The sync feature reads/writes these sections; generators must keep marker
+  lines intact and must not indent them or place them inside fenced code.
+
 ## File conventions for generators
 
 - UTF-8, LF line endings, one trailing newline.

@@ -151,6 +151,7 @@ export default class WriterIndexProvider extends ProviderContract {
       {
         shiftHeadings: exportConfig.manuscriptShiftHeadings,
         stripTodos: exportConfig.manuscriptStripTodos,
+        stripFieldMarkers: exportConfig.manuscriptStripFieldMarkers,
         pandocWorkingDir: path.dirname(rootPath)
       }
     )

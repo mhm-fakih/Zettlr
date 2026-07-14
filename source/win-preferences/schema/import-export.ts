@@ -93,6 +93,11 @@ export function getImportExportFields (): PreferencesFieldset[] {
           label: trans('Manuscript export: remove TODO lines'),
           model: 'export.manuscriptStripTodos'
         },
+        {
+          type: 'checkbox',
+          label: trans('Manuscript export: remove @@ field @@ marker lines'),
+          model: 'export.manuscriptStripFieldMarkers'
+        },
         { type: 'separator' },
         {
           type: 'radio',

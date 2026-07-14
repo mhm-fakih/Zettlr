@@ -23,6 +23,11 @@ import { scanTodos, DEFAULT_TODO_TAGS } from '@common/util/scan-todos'
 import { matchEmbedTarget } from './parse-writer-file'
 import { MAX_INCLUDE_DEPTH, type IncludeResolver } from './build-manuscript-tree'
 
+/**
+ * A DB-sync field marker line, e.g. `@@ summary @@` (see docs/MASTER-TOC-FORMAT.md)
+ */
+export const FIELD_MARKER_RE = /^@@\s*[^@\n]+?\s*@@\s*$/
+
 export interface AssembleManuscriptOptions {
   /**
    * Shift ATX heading levels of included files by their nesting depth
@@ -37,6 +42,12 @@ export interface AssembleManuscriptOptions {
    * The TODO tags to strip
    */
   todoTags?: string[]
+  /**
+   * Remove `@@ field @@` DB-sync marker lines (each note section under such a
+   * marker maps to a database field; the markers themselves are metadata and
+   * don't belong in an export). Default true.
+   */
+  stripFieldMarkers?: boolean
   /**
    * If set, injected as `zettlr.pandoc_working_dir` into the root's
    * frontmatter so that relative resource paths (images) keep working even
@@ -161,6 +172,10 @@ async function assembleFile (
 
     if (todoLines.has(i + 1)) {
       continue // Spec §5.3: TODO lines are stripped
+    }
+
+    if (options.stripFieldMarkers !== false && FIELD_MARKER_RE.test(line)) {
+      continue // DB-sync field markers are metadata, not manuscript text
     }
 
     const target = matchEmbedTarget(line)
