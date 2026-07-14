@@ -21,12 +21,9 @@ import { markdownToAST, extractASTNodes } from '@common/modules/markdown-utils'
 import type { ASTNode, Heading } from '@common/modules/markdown-utils/markdown-ast'
 import { countAll } from '@common/util/counter'
 import { hasMarkdownExt } from '@common/util/file-extention-checks'
-import type { WriterFileEntry, WriterHeading, WriterInclude, WriterTodo } from '@dts/common/writer'
-
-/**
- * The default set of harvested TODO tags (spec §4.1)
- */
-export const DEFAULT_TODO_TAGS = [ 'TODO', 'FIXME', 'QUESTION', 'SOURCE' ]
+import { scanTodos, DEFAULT_TODO_TAGS } from '@common/util/scan-todos'
+import { scanLdlCodes } from '@common/util/scan-codes'
+import type { WriterFileEntry, WriterHeading, WriterInclude } from '@dts/common/writer'
 
 // An embed that is the entire (trimmed) source of a top-level paragraph:
 // ![alt](target "optional title") respectively ![[target]]
@@ -54,65 +51,6 @@ function cleanMdTarget (raw: string): string {
  */
 function cleanWikiTarget (raw: string): string {
   return raw.split('|')[0].split('#')[0].trim()
-}
-
-/**
- * Scans the given source for TODO-style annotations. Recognises the tags in
- * prose, list items, and HTML comments, but not inside fenced code blocks or
- * the YAML frontmatter (spec §4.2).
- */
-export function scanTodos (content: string, tags: string[] = DEFAULT_TODO_TAGS): WriterTodo[] {
-  if (tags.length === 0) {
-    return []
-  }
-
-  const todos: WriterTodo[] = []
-  const tagRe = new RegExp(`(?:^|[\\s>*+-]|!--)(${tags.join('|')}):\\s*(.*)$`)
-  const lines = content.split('\n')
-
-  let inFrontmatter = false
-  let inFence = false
-  let fenceMarker = ''
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-
-    if (i === 0 && line === '---') {
-      inFrontmatter = true
-      continue
-    }
-    if (inFrontmatter) {
-      if (line === '---' || line === '...') {
-        inFrontmatter = false
-      }
-      continue
-    }
-
-    const fence = /^\s{0,3}(`{3,}|~{3,})/.exec(line)
-    if (fence !== null) {
-      if (!inFence) {
-        inFence = true
-        fenceMarker = fence[1][0]
-      } else if (fence[1][0] === fenceMarker) {
-        inFence = false
-      }
-      continue
-    }
-    if (inFence) {
-      continue
-    }
-
-    const match = tagRe.exec(line)
-    if (match !== null) {
-      let message = match[2].trim()
-      if (message.endsWith('-->')) {
-        message = message.slice(0, -3).trim()
-      }
-      todos.push({ tag: match[1], message, line: i + 1 })
-    }
-  }
-
-  return todos
 }
 
 /**
@@ -215,6 +153,7 @@ export function parseWriterFile (
     words: countAll(ast, locale).words,
     headings,
     includes,
-    todos: scanTodos(content, todoTags)
+    todos: scanTodos(content, todoTags),
+    codes: scanLdlCodes(content)
   }
 }

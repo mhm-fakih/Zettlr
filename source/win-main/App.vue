@@ -389,7 +389,12 @@ const shouldShowMenubar = computed<boolean>(() => process.platform === 'win32' |
 
 // Finally, the toolbar. That one is a bit more iffy. It is always shown, EXCEPT
 // Hide Toolbar is True and DistractionFree is True
-const shouldShowToolbar = computed<boolean>(() => !distractionFree.value || !configStore.config.display.hideToolbarInDistractionFree)
+const shouldShowToolbar = computed<boolean>(() => {
+  if (!configStore.config.window.showToolbar) {
+    return false
+  }
+  return !distractionFree.value || !configStore.config.display.hideToolbarInDistractionFree
+})
 
 const parsedDocumentInfo = computed<string[]>(() => {
   const info = windowStateStore.activeDocumentInfo
@@ -685,6 +690,8 @@ onMounted(() => {
   ipcRenderer.on('shortcut', (event, shortcut) => {
     if (shortcut === 'toggle-sidebar') {
       configStore.setConfigValue('window.sidebarVisible', !sidebarVisible.value)
+    } else if (shortcut === 'toggle-toolbar') {
+      configStore.setConfigValue('window.showToolbar', !configStore.config.window.showToolbar)
     } else if (shortcut === 'insert-id') {
       editorCommands.value.data = generateId(configStore.config.zkn.idGen)
       editorCommands.value.replaceSelection = !editorCommands.value.replaceSelection

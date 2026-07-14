@@ -501,6 +501,14 @@ export default function getMenu (
           }
         },
         {
+          id: 'menu.toggle_toolbar',
+          label: trans('Toggle Toolbar'),
+          accelerator: 'Cmd+Shift+9',
+          click: function (_menuitem, focusedWindow) {
+            (focusedWindow as BrowserWindow|undefined)?.webContents.send('shortcut', 'toggle-toolbar')
+          }
+        },
+        {
           type: 'separator'
         },
         // The Zoom menu items can be changed in function between GUI zooming

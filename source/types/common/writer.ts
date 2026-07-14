@@ -72,6 +72,20 @@ export interface WriterTodo {
 }
 
 /**
+ * A standalone letter-digit-letter code (e.g. T3Z) found in a file
+ */
+export interface WriterCode {
+  /**
+   * The code itself, e.g. 'T3Z'
+   */
+  code: string
+  /**
+   * The 1-indexed line the code is on
+   */
+  line: number
+}
+
+/**
  * Everything the writer index knows about one Markdown file
  */
 export interface WriterFileEntry {
@@ -99,6 +113,10 @@ export interface WriterFileEntry {
    * All TODO annotations, in document order
    */
   todos: WriterTodo[]
+  /**
+   * All letter-digit-letter codes (e.g. T3Z), in document order
+   */
+  codes: WriterCode[]
 }
 
 /**

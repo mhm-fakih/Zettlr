@@ -11,6 +11,20 @@
         <ManuscriptTab v-on:jtl="emit('jtl', $event)"></ManuscriptTab>
       </SidebarPanel>
       <SidebarPanel
+        v-bind:label="trans('TODO')"
+        v-bind:collapsed="isCollapsed('todo')"
+        v-on:toggle="togglePanel('todo')"
+      >
+        <TodoTab v-on:jtl="emit('jtl', $event)"></TodoTab>
+      </SidebarPanel>
+      <SidebarPanel
+        v-bind:label="trans('Codes')"
+        v-bind:collapsed="isCollapsed('codes')"
+        v-on:toggle="togglePanel('codes')"
+      >
+        <CodesTab v-on:jtl="emit('jtl', $event)"></CodesTab>
+      </SidebarPanel>
+      <SidebarPanel
         v-bind:label="trans('Table of contents')"
         v-bind:collapsed="isCollapsed('toc')"
         v-on:toggle="togglePanel('toc')"
@@ -68,6 +82,8 @@ import RelatedFilesTab from './RelatedFilesTab.vue'
 import OtherFilesTab from './OtherFilesTab.vue'
 import SidebarPanel from './SidebarPanel.vue'
 import ManuscriptTab from './writer/ManuscriptTab.vue'
+import TodoTab from './writer/TodoTab.vue'
+import CodesTab from './writer/CodesTab.vue'
 
 const COLLAPSED_PANELS_KEY = 'sidebar-collapsed-panels'
 

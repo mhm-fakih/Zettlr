@@ -34,6 +34,8 @@ import { buildManuscriptTree } from './build-manuscript-tree'
 export type WriterProviderIPCAPI = IPCAPI<{
   'get-roots': undefined
   'get-tree': { rootPath: string }
+  'get-todos': undefined
+  'get-codes': undefined
   'get-index': undefined
 }>
 
@@ -58,6 +60,10 @@ export default class WriterIndexProvider extends ProviderContract {
         return this.getRoots()
       } else if (command === 'get-tree') {
         return this.getTree(message.payload.rootPath)
+      } else if (command === 'get-todos') {
+        return this.getTodos()
+      } else if (command === 'get-codes') {
+        return this.getCodes()
       } else if (command === 'get-index') {
         return Object.fromEntries(this._index)
       }
@@ -102,6 +108,26 @@ export default class WriterIndexProvider extends ProviderContract {
    */
   public getEntry (filePath: string): WriterFileEntry|undefined {
     return this._index.get(filePath)
+  }
+
+  /**
+   * Returns all files containing TODO annotations (spec §4).
+   */
+  public getTodos (): Array<Pick<WriterFileEntry, 'path'|'name'|'todos'>> {
+    return [...this._index.values()]
+      .filter(entry => entry.todos.length > 0)
+      .map(entry => ({ path: entry.path, name: entry.name, todos: entry.todos }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  /**
+   * Returns all files containing letter-digit-letter codes (e.g. T3Z).
+   */
+  public getCodes (): Array<Pick<WriterFileEntry, 'path'|'name'|'codes'>> {
+    return [...this._index.values()]
+      .filter(entry => entry.codes.length > 0)
+      .map(entry => ({ path: entry.path, name: entry.name, codes: entry.codes }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   }
 
   /**

@@ -22,7 +22,7 @@ import showPopupMenu, { type AnyMenuItem } from '@common/modules/window-register
 import { hasMarkdownExt } from '@common/util/file-extention-checks'
 import { type StatusbarItem } from '../statusbar'
 import { configField } from '../util/configuration'
-import { type DocumentDirection, documentDirectionField } from './bidi'
+import { type DocumentDirection, documentDirectionField, effectiveDirection } from './bidi'
 
 /**
  * Persists the given direction in the document's YAML frontmatter: replaces or
@@ -32,7 +32,7 @@ import { type DocumentDirection, documentDirectionField } from './bidi'
  * @param  {EditorView}         view       The editor view
  * @param  {DocumentDirection}  direction  The direction to persist
  */
-function applyDirection (view: EditorView, direction: DocumentDirection): void {
+function applyDirection (view: EditorView, direction: DocumentDirection|null): void {
   const doc = view.state.doc
 
   if (doc.lines >= 2 && doc.line(1).text === '---') {
@@ -40,8 +40,8 @@ function applyDirection (view: EditorView, direction: DocumentDirection): void {
       const line = doc.line(i)
 
       if (/^direction:/.test(line.text)) {
-        if (direction === 'auto') {
-          // Auto is the default -> remove the key (including its line break)
+        if (direction === null) {
+          // No override -> remove the key (including its line break)
           view.dispatch({ changes: { from: line.from, to: Math.min(line.to + 1, doc.length) } })
         } else {
           view.dispatch({ changes: { from: line.from, to: line.to, insert: `direction: ${direction}` } })
@@ -51,7 +51,7 @@ function applyDirection (view: EditorView, direction: DocumentDirection): void {
 
       if (line.text === '---' || line.text === '...') {
         // Fence closed without a direction key -> insert one before the fence
-        if (direction !== 'auto') {
+        if (direction !== null) {
           view.dispatch({ changes: { from: line.from, insert: `direction: ${direction}\n` } })
         }
         return
@@ -60,7 +60,7 @@ function applyDirection (view: EditorView, direction: DocumentDirection): void {
     // Unterminated frontmatter: not actually a frontmatter, so fall through
   }
 
-  if (direction !== 'auto') {
+  if (direction !== null) {
     view.dispatch({ changes: { from: 0, insert: `---\ndirection: ${direction}\n---\n\n` } })
   }
 }
@@ -75,8 +75,8 @@ function applyDirection (view: EditorView, direction: DocumentDirection): void {
  */
 export function textDirectionStatus (state: EditorState, view: EditorView): StatusbarItem|null {
   const config = state.field(configField, false)
-  const direction = state.field(documentDirectionField, false)
-  if (config === undefined || direction === undefined || !hasMarkdownExt(config.metadata.path)) {
+  const override = state.field(documentDirectionField, false)
+  if (config === undefined || override === undefined || !hasMarkdownExt(config.metadata.path)) {
     return null
   }
 
@@ -87,21 +87,30 @@ export function textDirectionStatus (state: EditorState, view: EditorView): Stat
   }
 
   return {
-    content: `⇆ ${labels[direction]}`,
+    content: `⇆ ${labels[effectiveDirection(state)]}`,
     title: trans('Base text direction'),
     onClick (event) {
       // Ensure the event doesn't get propagated to the DOM root where it would
       // be picked up by the context menu handler and closed again immediately.
       event.stopPropagation()
-      const items: AnyMenuItem[] = ([ 'auto', 'ltr', 'rtl' ] as const).map(dir => ({
-        type: 'checkbox',
-        id: dir,
-        label: labels[dir],
-        checked: direction === dir
-      }))
+      const items: AnyMenuItem[] = [
+        {
+          type: 'checkbox',
+          id: 'default',
+          label: trans('Application default'),
+          checked: override === null
+        },
+        { type: 'separator' },
+        ...([ 'auto', 'ltr', 'rtl' ] as const).map((dir): AnyMenuItem => ({
+          type: 'checkbox',
+          id: dir,
+          label: labels[dir],
+          checked: override === dir
+        }))
+      ]
 
       showPopupMenu({ x: event.clientX, y: event.clientY }, items, clickedID => {
-        applyDirection(view, clickedID as DocumentDirection)
+        applyDirection(view, clickedID === 'default' ? null : clickedID as DocumentDirection)
       })
     }
   }

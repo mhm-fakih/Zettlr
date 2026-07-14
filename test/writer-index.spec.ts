@@ -14,7 +14,9 @@
  */
 
 import { strictEqual, deepStrictEqual, ok } from 'assert'
-import { parseWriterFile, scanTodos } from 'source/app/service-providers/writer/parse-writer-file'
+import { parseWriterFile } from 'source/app/service-providers/writer/parse-writer-file'
+import { scanTodos } from 'source/common/util/scan-todos'
+import { scanLdlCodes } from 'source/common/util/scan-codes'
 import { buildManuscriptTree, type IncludeResolver } from 'source/app/service-providers/writer/build-manuscript-tree'
 import type { WriterFileEntry } from 'source/types/common/writer'
 
@@ -115,6 +117,26 @@ Some sentence with SOURCE: find a citation
   })
 })
 
+describe('Writer#scanLdlCodes()', function () {
+  it('finds standalone letter-digit-letter codes', function () {
+    const codes = scanLdlCodes('See T3Z and k9m here.\nSecond line has A1B.\n')
+    deepStrictEqual(codes.map(c => [ c.code, c.line ]), [
+      [ 'T3Z', 1 ],
+      [ 'k9m', 1 ],
+      [ 'A1B', 2 ]
+    ])
+  })
+
+  it('ignores codes embedded in longer alphanumeric runs', function () {
+    deepStrictEqual(scanLdlCodes('xT3Z T3Zx T3Z9 9T3Z aT3Za'), [])
+  })
+
+  it('supports non-Latin letters and digits', function () {
+    const codes = scanLdlCodes('رمز م٣ك في النص')
+    deepStrictEqual(codes.map(c => c.code), ['م٣ك'])
+  })
+})
+
 describe('Writer#buildManuscriptTree()', function () {
   function makeEntry (path: string, partial: Partial<WriterFileEntry>): [string, WriterFileEntry] {
     return [ path, {
@@ -124,6 +146,7 @@ describe('Writer#buildManuscriptTree()', function () {
       headings: [],
       includes: [],
       todos: [],
+      codes: [],
       ...partial
     } ]
   }

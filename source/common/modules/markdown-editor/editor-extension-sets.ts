@@ -77,6 +77,8 @@ import { projectInfoField } from './plugins/project-info-field'
 import { headingGutter } from './renderers/render-headings'
 import { citationTooltips } from './tooltips/citations'
 import { writerBidi } from './writer/bidi'
+import { writerTodoGutter } from './writer/todo-gutter'
+import { writerLdlHighlight } from './writer/ldl-highlight'
 
 /**
  * This interface describes the required properties which the extension sets
@@ -339,6 +341,8 @@ export function getMarkdownExtensions (options: CoreExtensionOptions): Extension
     defaultContextMenu, // A default context menu
     softwrapVisualIndent, // Always indent visually
     writerBidi(), // Bidirectional (Arabic/English) writing support
+    writerTodoGutter(), // Gutter markers on lines with TODO annotations
+    writerLdlHighlight(), // Highlight letter-digit-letter codes (e.g. T3Z)
     tagClasses(), // Apply a custom class to each tag so that users can style them (#4589)
     EditorView.domEventHandlers(options.domEventsListeners)
   ]

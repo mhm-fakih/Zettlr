@@ -486,6 +486,14 @@ export default function getMenu (
           }
         },
         {
+          id: 'menu.toggle_toolbar',
+          label: trans('Toggle Toolbar'),
+          accelerator: 'Ctrl+Shift+9',
+          click: function (_menuitem, focusedWindow) {
+            (focusedWindow as BrowserWindow|undefined)?.webContents.send('shortcut', 'toggle-toolbar')
+          }
+        },
+        {
           type: 'separator'
         },
         {

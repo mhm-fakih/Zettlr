@@ -19,8 +19,9 @@
  */
 
 import { bidiIsolates } from '@codemirror/language'
-import { RangeSetBuilder, StateField, type Extension, type Text } from '@codemirror/state'
+import { RangeSetBuilder, StateField, type EditorState, type Extension, type Text } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
+import { configField } from '../util/configuration'
 
 export type DocumentDirection = 'ltr'|'rtl'|'auto'
 
@@ -35,20 +36,21 @@ const FRONTMATTER_SCAN_LIMIT = 10_000
  * Reads the base direction for a document from the `direction:` key of its
  * YAML frontmatter, if present.
  *
- * @param   {Text}               doc  The document
+ * @param   {Text}                    doc  The document
  *
- * @return  {DocumentDirection}       The direction; defaults to 'auto'
+ * @return  {DocumentDirection|null}       The direction; null if the document
+ *                                         has no override
  */
-function readDirection (doc: Text): DocumentDirection {
+function readDirection (doc: Text): DocumentDirection|null {
   if (doc.lines < 2 || doc.line(1).text !== '---') {
-    return 'auto'
+    return null
   }
 
   const lastLine = doc.lineAt(Math.min(doc.length, FRONTMATTER_SCAN_LIMIT)).number
   for (let i = 2; i <= lastLine; i++) {
     const text = doc.line(i).text
     if (text === '---' || text === '...') {
-      return 'auto' // Fence closed without a direction key
+      return null // Fence closed without a direction key
     }
 
     const match = /^direction:\s*["']?(ltr|rtl|auto)["']?\s*$/.exec(text)
@@ -57,14 +59,28 @@ function readDirection (doc: Text): DocumentDirection {
     }
   }
 
-  return 'auto'
+  return null
 }
 
 /**
- * Holds the document's base text direction as configured in its YAML
- * frontmatter ('auto' if the key is absent).
+ * Returns the direction that actually applies to the document: its
+ * frontmatter override if present, else the application-wide default from the
+ * preferences ('auto' as the last resort).
+ *
+ * @param   {EditorState}        state  The editor state
+ *
+ * @return  {DocumentDirection}         The effective direction
  */
-export const documentDirectionField = StateField.define<DocumentDirection>({
+export function effectiveDirection (state: EditorState): DocumentDirection {
+  const override = state.field(documentDirectionField, false) ?? null
+  return override ?? state.field(configField, false)?.defaultTextDirection ?? 'auto'
+}
+
+/**
+ * Holds the document's base text direction override as configured in its YAML
+ * frontmatter (null if the key is absent).
+ */
+export const documentDirectionField = StateField.define<DocumentDirection|null>({
   create (state) {
     return readDirection(state.doc)
   },
@@ -99,7 +115,7 @@ const lineDirections: Record<DocumentDirection, Decoration> = {
  * @return  {DecorationSet}        The line decorations
  */
 function buildLineDecorations (view: EditorView): DecorationSet {
-  const direction = view.state.field(documentDirectionField)
+  const direction = effectiveDirection(view.state)
   const decoration = lineDirections[direction]
   const builder = new RangeSetBuilder<Decoration>()
   let lastLine = -1
@@ -132,7 +148,7 @@ const perLineDirection = ViewPlugin.fromClass(class {
   update (update: ViewUpdate): void {
     if (
       update.docChanged || update.viewportChanged ||
-      update.state.field(documentDirectionField) !== update.startState.field(documentDirectionField)
+      effectiveDirection(update.state) !== effectiveDirection(update.startState)
     ) {
       this.decorations = buildLineDecorations(update.view)
     }

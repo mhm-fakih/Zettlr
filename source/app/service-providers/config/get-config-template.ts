@@ -147,6 +147,7 @@ export interface ConfigOptions {
     fontSize: number
     countChars: boolean
     inputMode: 'default'|'vim'|'emacs'
+    defaultTextDirection: 'auto'|'ltr'|'rtl'
     boldFormatting: '**'|'__'
     italicFormatting: '_'|'*'
     highlightFormatting: 'span'|'=='
@@ -221,6 +222,7 @@ export interface ConfigOptions {
     nativeAppearance: boolean
     vibrancy: boolean
     sidebarVisible: boolean
+    showToolbar: boolean
     fileManagerVisible: boolean
     currentSidebarTab: 'toc'|'references'|'relatedFiles'|'attachments'
     recentGlobalSearches: string[]
@@ -290,7 +292,8 @@ export function getConfigTemplate (): ConfigOptions {
       vibrancy: false,
       // Store a few GUI related settings here as well
       fileManagerVisible: true,
-      sidebarVisible: false,
+      sidebarVisible: true, // Writer fork: the sidebar (manuscript/ToC/TODO) is central, show it by default
+      showToolbar: false, // Writer fork: the toolbar is hidden by default, toggleable via the View menu
       currentSidebarTab: 'toc',
       recentGlobalSearches: []
     },
@@ -363,6 +366,7 @@ export function getConfigTemplate (): ConfigOptions {
       fontSize: 18, // The editor's font size in pixels
       countChars: false, // Set to true to enable counting characters instead of words
       inputMode: 'default', // Can be default, vim, emacs
+      defaultTextDirection: 'auto', // Base direction for documents without a frontmatter override
       boldFormatting: '**', // Can be ** or __
       italicFormatting: '_', // Can be * or _
       highlightFormatting: '==', // Can be 'span' or ==
