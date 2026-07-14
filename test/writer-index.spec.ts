@@ -15,6 +15,7 @@
 
 import { strictEqual, deepStrictEqual, ok } from 'assert'
 import { parseWriterFile } from 'source/app/service-providers/writer/parse-writer-file'
+import { assembleManuscript } from 'source/app/service-providers/writer/assemble-manuscript'
 import { scanTodos } from 'source/common/util/scan-todos'
 import { scanLdlCodes } from 'source/common/util/scan-codes'
 import { buildManuscriptTree, type IncludeResolver } from 'source/app/service-providers/writer/build-manuscript-tree'
@@ -259,5 +260,117 @@ describe('Writer#buildManuscriptTree()', function () {
 
   it('returns null for unindexed roots', function () {
     strictEqual(buildManuscriptTree('/nope.md', new Map(), resolver), null)
+  })
+})
+
+describe('Writer#assembleManuscript()', function () {
+  const FILES: Record<string, string> = {
+    '/ws/master.md': `---
+title: The Book
+---
+
+# Part One
+
+TODO: fix the intro.
+
+![](ch1.md)
+
+![](missing.md)
+`,
+    '/ws/ch1.md': `---
+title: Chapter One
+---
+
+# Chapter One
+
+Some text. FIXME: revise.
+
+## Detail
+
+\`\`\`
+# not a heading, and TODO: not a todo
+\`\`\`
+
+![](ch2.md)
+`,
+    '/ws/ch2.md': `# Deep Chapter
+
+Deepest text.
+`
+  }
+
+  const readFile = async (p: string): Promise<string> => {
+    const content = FILES[p]
+    if (content === undefined) {
+      throw new Error(`No such file: ${p}`)
+    }
+    return content
+  }
+
+  const resolver = (source: string, target: string): { path?: string, error?: 'missing'|'ambiguous' } => {
+    const dir = source.slice(0, source.lastIndexOf('/'))
+    const resolved = `${dir}/${target}`
+    return resolved in FILES ? { path: resolved } : { error: 'missing' }
+  }
+
+  it('splices includes depth-first with heading shift and TODO stripping', async function () {
+    const result = await assembleManuscript('/ws/master.md', readFile, resolver, {
+      shiftHeadings: true,
+      stripTodos: true
+    })
+
+    // Root frontmatter survives, included frontmatter does not
+    ok(result.startsWith('---\ntitle: The Book'))
+    ok(!result.includes('Chapter One\n---'))
+    // TODO/FIXME lines are gone
+    ok(!result.includes('TODO: fix the intro'))
+    ok(!result.includes('FIXME: revise'))
+    // Heading shift: depth 1 => ##, depth 2 => ###; fenced pseudo-heading untouched
+    ok(result.includes('\n## Chapter One'))
+    ok(result.includes('\n### Detail'))
+    ok(result.includes('\n### Deep Chapter'))
+    ok(result.includes('# not a heading, and TODO: not a todo'))
+    // Unresolved include becomes a comment marker
+    ok(result.includes('<!-- writer-export: unresolved include "missing.md" (missing) -->'))
+    // No embed lines survive
+    ok(!result.includes('!['))
+  })
+
+  it('keeps headings and TODOs when the settings say so', async function () {
+    const result = await assembleManuscript('/ws/master.md', readFile, resolver, {
+      shiftHeadings: false,
+      stripTodos: false
+    })
+
+    ok(result.includes('\n# Chapter One'))
+    ok(result.includes('TODO: fix the intro'))
+    ok(result.includes('FIXME: revise'))
+  })
+
+  it('injects the pandoc working directory into the root frontmatter', async function () {
+    const result = await assembleManuscript('/ws/master.md', readFile, resolver, {
+      shiftHeadings: true,
+      stripTodos: true,
+      pandocWorkingDir: '/ws'
+    })
+
+    ok(result.includes('zettlr:\n  pandoc_working_dir: "/ws"'))
+    // Injected before the closing fence of the root frontmatter
+    ok(result.indexOf('pandoc_working_dir') < result.indexOf('# Part One'))
+  })
+
+  it('marks circular includes instead of hanging', async function () {
+    const cyclic: Record<string, string> = {
+      '/ws/a.md': '![](b.md)\n',
+      '/ws/b.md': '![](a.md)\n'
+    }
+    const read = async (p: string): Promise<string> => cyclic[p]
+    const res = (source: string, target: string): { path?: string } => ({ path: `/ws/${target}` })
+
+    const result = await assembleManuscript('/ws/a.md', read, res, {
+      shiftHeadings: true,
+      stripTodos: true
+    })
+    ok(result.includes('circular include "a.md" skipped'))
   })
 })

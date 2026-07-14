@@ -19,7 +19,7 @@
 
 import { promises as fs } from 'fs'
 import path from 'path'
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import broadcastIpcMessage from '@common/util/broadcast-ipc-message'
 import { hasMarkdownExt } from '@common/util/file-extention-checks'
 import ProviderContract, { type IPCAPI } from '../provider-contract'
@@ -30,6 +30,7 @@ import type { FSALEventPayload } from '@providers/fsal'
 import type { ManuscriptTreeNode, WriterFileEntry, WriterRoot } from '@dts/common/writer'
 import { parseWriterFile } from './parse-writer-file'
 import { buildManuscriptTree } from './build-manuscript-tree'
+import { assembleManuscript, assembledFileName } from './assemble-manuscript'
 
 export type WriterProviderIPCAPI = IPCAPI<{
   'get-roots': undefined
@@ -37,6 +38,7 @@ export type WriterProviderIPCAPI = IPCAPI<{
   'get-todos': undefined
   'get-codes': undefined
   'get-index': undefined
+  'assemble-manuscript': { rootPath: string }
 }>
 
 const BROADCAST_DEBOUNCE_MS = 300
@@ -66,6 +68,8 @@ export default class WriterIndexProvider extends ProviderContract {
         return this.getCodes()
       } else if (command === 'get-index') {
         return Object.fromEntries(this._index)
+      } else if (command === 'assemble-manuscript') {
+        return await this.assembleForExport(message.payload.rootPath)
       }
     })
   }
@@ -128,6 +132,36 @@ export default class WriterIndexProvider extends ProviderContract {
       .filter(entry => entry.codes.length > 0)
       .map(entry => ({ path: entry.path, name: entry.name, codes: entry.codes }))
       .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  /**
+   * Assembles the manuscript rooted at the given master file (spec §5) and
+   * writes it to a temporary file whose path is returned. The file carries
+   * the root's base name so export artifacts are named after it; Pandoc's
+   * working directory is pinned to the root's folder via frontmatter so
+   * relative resource paths keep working.
+   */
+  public async assembleForExport (rootPath: string): Promise<string> {
+    const exportConfig = this._config.get().export
+
+    const content = await assembleManuscript(
+      rootPath,
+      async absPath => await fs.readFile(absPath, 'utf-8'),
+      (source, target) => this.resolveInclude(source, target),
+      {
+        shiftHeadings: exportConfig.manuscriptShiftHeadings,
+        stripTodos: exportConfig.manuscriptStripTodos,
+        pandocWorkingDir: path.dirname(rootPath)
+      }
+    )
+
+    const targetDir = path.join(app.getPath('temp'), 'writer-manuscript')
+    await fs.mkdir(targetDir, { recursive: true })
+    const targetPath = path.join(targetDir, assembledFileName(rootPath))
+    await fs.writeFile(targetPath, content, 'utf-8')
+
+    this._logger.info(`[WriterIndex] Assembled manuscript ${rootPath} -> ${targetPath}`)
+    return targetPath
   }
 
   /**

@@ -4,15 +4,25 @@
       {{ emptyMessage }}
     </p>
     <template v-else>
-      <select
-        v-if="roots.length > 1"
-        v-model="selectedRoot"
-        class="manuscript-root-select"
-      >
-        <option v-for="root in roots" v-bind:key="root.path" v-bind:value="root.path">
-          {{ root.name }}
-        </option>
-      </select>
+      <div class="manuscript-controls">
+        <select
+          v-if="roots.length > 1"
+          v-model="selectedRoot"
+          class="manuscript-root-select"
+        >
+          <option v-for="root in roots" v-bind:key="root.path" v-bind:value="root.path">
+            {{ root.name }}
+          </option>
+        </select>
+        <button
+          ref="exportButton"
+          type="button"
+          class="manuscript-export-button"
+          v-bind:disabled="isAssembling"
+          v-bind:title="exportTitle"
+          v-on:click="startExport"
+        >{{ exportLabel }}</button>
+      </div>
       <ManuscriptNode
         v-if="tree !== null"
         v-bind:node="tree"
@@ -23,6 +33,13 @@
         v-on:jtl="emit('jtl', $event)"
       ></ManuscriptNode>
     </template>
+
+    <PopoverExport
+      v-if="assembledPath !== '' && exportButton !== null"
+      v-bind:target="exportButton"
+      v-bind:file-path="assembledPath"
+      v-on:close="assembledPath = ''"
+    ></PopoverExport>
   </div>
 </template>
 
@@ -49,6 +66,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { trans } from '@common/i18n-renderer'
 import type { ManuscriptTreeNode, WriterRoot } from '@dts/common/writer'
 import ManuscriptNode from './ManuscriptNode.vue'
+import PopoverExport from '../../PopoverExport.vue'
 
 const ipcRenderer = window.ipc
 
@@ -65,6 +83,29 @@ const tree = ref<ManuscriptTreeNode|null>(null)
 const collapsedKeys = ref<Set<string>>(loadCollapsedKeys())
 
 const emptyMessage = computed(() => trans('No manuscript found. A file becomes a manuscript root once it embeds a note on its own line, e.g. ![](notes/chapter-1.md)'))
+
+// Manuscript export (spec §5): assemble includes depth-first into a temp
+// file, then hand it to Zettlr's regular export popover
+const exportButton = ref<HTMLButtonElement|null>(null)
+const isAssembling = ref<boolean>(false)
+const assembledPath = ref<string>('')
+const exportLabel = trans('Export…')
+const exportTitle = trans('Assemble the manuscript and export it via Pandoc')
+
+function startExport (): void {
+  if (selectedRoot.value === '' || isAssembling.value) {
+    return
+  }
+
+  isAssembling.value = true
+  ipcRenderer.invoke('writer-provider', {
+    command: 'assemble-manuscript',
+    payload: { rootPath: selectedRoot.value }
+  })
+    .then((tempPath: string) => { assembledPath.value = tempPath })
+    .catch(err => console.error(err))
+    .finally(() => { isAssembling.value = false })
+}
 
 onMounted(refresh)
 ipcRenderer.on('writer-index', refresh)
@@ -130,9 +171,19 @@ body {
       opacity: 0.8;
     }
 
-    select.manuscript-root-select {
-      width: 100%;
+    div.manuscript-controls {
+      display: flex;
+      gap: 6px;
       margin-bottom: 8px;
+
+      select.manuscript-root-select {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      button.manuscript-export-button {
+        flex: 0 0 auto;
+      }
     }
   }
 }

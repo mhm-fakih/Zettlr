@@ -84,6 +84,17 @@ export function getImportExportFields (): PreferencesFieldset[] {
         },
         { type: 'separator' },
         {
+          type: 'checkbox',
+          label: trans('Manuscript export: shift heading levels of included files by nesting depth'),
+          model: 'export.manuscriptShiftHeadings'
+        },
+        {
+          type: 'checkbox',
+          label: trans('Manuscript export: remove TODO lines'),
+          model: 'export.manuscriptStripTodos'
+        },
+        { type: 'separator' },
+        {
           type: 'radio',
           label: trans('Internal links'),
           model: 'export.stripLinks',

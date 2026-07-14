@@ -54,6 +54,45 @@ function cleanWikiTarget (raw: string): string {
 }
 
 /**
+ * If the given source is exactly one structural-include line (an embed alone
+ * on its line targeting a Markdown file), returns the raw target — else
+ * undefined. Shared between the index parser and the manuscript assembler.
+ *
+ * @param   {string}            source  One line (or paragraph source)
+ *
+ * @return  {string|undefined}          The raw include target
+ */
+export function matchEmbedTarget (source: string): string|undefined {
+  source = source.trim()
+  if (source.includes('\n')) {
+    return undefined
+  }
+
+  let target: string|undefined
+  const mdMatch = MD_EMBED_RE.exec(source)
+  if (mdMatch !== null) {
+    target = cleanMdTarget(mdMatch[1])
+  } else {
+    const wikiMatch = WIKI_EMBED_RE.exec(source)
+    if (wikiMatch !== null) {
+      target = cleanWikiTarget(wikiMatch[1])
+    }
+  }
+
+  if (target === undefined || target === '') {
+    return undefined
+  }
+
+  // Only Markdown targets are structural; targets without extension are
+  // resolved like wikilinks (i.e. to Markdown files) later on.
+  if (path.extname(target) !== '' && !hasMarkdownExt(target)) {
+    return undefined
+  }
+
+  return target
+}
+
+/**
  * Parses a Markdown file into its writer index entry.
  *
  * @param   {string}           filePath  Absolute path of the file
@@ -118,33 +157,10 @@ export function parseWriterFile (
   const includes: WriterInclude[] = []
   const topLevelChildren: ASTNode[] = ast.type === 'Document' ? ast.children : []
   for (const child of topLevelChildren) {
-    const source = content.slice(child.from, child.to).trim()
-    if (source.includes('\n')) {
-      continue // Multi-line block: the embed is not alone on its line
+    const target = matchEmbedTarget(content.slice(child.from, child.to))
+    if (target !== undefined) {
+      includes.push({ target, line: lineOf(child.from) })
     }
-
-    let target: string|undefined
-    const mdMatch = MD_EMBED_RE.exec(source)
-    if (mdMatch !== null) {
-      target = cleanMdTarget(mdMatch[1])
-    } else {
-      const wikiMatch = WIKI_EMBED_RE.exec(source)
-      if (wikiMatch !== null) {
-        target = cleanWikiTarget(wikiMatch[1])
-      }
-    }
-
-    if (target === undefined || target === '') {
-      continue
-    }
-
-    // Only Markdown targets are structural; targets without extension are
-    // resolved like wikilinks (i.e. to Markdown files) later on.
-    if (path.extname(target) !== '' && !hasMarkdownExt(target)) {
-      continue
-    }
-
-    includes.push({ target, line: lineOf(child.from) })
   }
 
   return {
