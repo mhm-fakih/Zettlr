@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git://github.com/Zettlr/Zettlr.git"
   },
-  "version": "4.6.1",
+  "version": "4.6.1+9173",
   "license": "GPL-3.0",
   "description": "A fork of Zettlr, optimized for Arabic typing and nested notes, TODOs, and (later) Nibras PKM integration.",
   "main": ".webpack/main",
@@ -30,6 +30,7 @@
     "release:win-arm": "electron-builder --win --ia32 --arm64 --publish never --prepackaged out/Zettlr-win32-arm64",
     "release:linux-x64": "cross-env NODE_ENV=production npm_config_arch=x64 electron-forge make --platform=linux --arch=x64 && electron-builder --linux AppImage --x64 --publish never --prepackaged out/Zettlr-linux-x64",
     "release:linux-arm": "cross-env NODE_ENV=production npm_config_arch=arm64 electron-forge make --platform=linux --arch=arm64 && electron-builder --linux AppImage --arm64 --publish never --prepackaged out/Zettlr-linux-arm64",
+    "version:build": "node scripts/set-build-number.mjs",
     "update:csl": "node scripts/update-csl.mjs",
     "update:citation": "node scripts/update-citation.mjs",
     "coverage": "nyc mocha --check-coverage",
