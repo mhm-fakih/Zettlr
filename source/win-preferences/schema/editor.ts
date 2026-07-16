@@ -52,6 +52,36 @@ export function getEditorFields (config: ConfigOptions): PreferencesFieldset[] {
       fields: []
     },
     {
+      title: trans('Editor margins'),
+      infoString: trans('How much whitespace to keep around the text.'),
+      group: PreferencesGroups.Editor,
+      titleField: {
+        type: 'select',
+        model: 'editor.editorMargins',
+        options: {
+          small: trans('Small'),
+          medium: trans('Medium'),
+          large: trans('Large')
+        }
+      },
+      help: undefined,
+      fields: []
+    },
+    {
+      title: trans('TODO tags'),
+      infoString: trans('These tags are collected into the TODO panel and marked in the editor gutter. A tag matches at the start of a line, mid-sentence, in list items, and in HTML comments, followed by a colon (e.g. TODO: fix this).'),
+      group: PreferencesGroups.Editor,
+      help: undefined,
+      fields: [
+        {
+          type: 'token',
+          label: trans('Enter a tag and press Enter.'),
+          placeholder: trans('TODO'),
+          model: 'editor.todoTags'
+        }
+      ]
+    },
+    {
       title: trans('Markdown rendering'),
       infoString: trans('Check to enable live rendering of various Markdown elements to formatted appearance. This hides formatting characters (such as **text**) or renders images instead of their link.'),
       group: PreferencesGroups.Editor,

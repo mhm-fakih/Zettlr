@@ -68,6 +68,7 @@ export interface EditorConfiguration {
   citeStyle: 'in-text'|'in-text-suffix'|'regular'
   inputMode: 'default'|'vim'|'emacs'
   defaultTextDirection: 'auto'|'ltr'|'rtl'
+  todoTags: string[]
   muteLines: boolean
   readabilityAlgorithm: 'dale-chall'|'gunning-fog'|'coleman-liau'|'automated-readability'
   readabilityMode: boolean
@@ -136,6 +137,7 @@ export function getDefaultConfig (): EditorConfiguration {
     readabilityAlgorithm: 'dale-chall',
     inputMode: 'default',
     defaultTextDirection: 'auto',
+    todoTags: [ 'TODO', 'FIXME', 'QUESTION', 'SOURCE' ],
     readabilityMode: false,
     typewriterMode: false,
     distractionFree: false,

@@ -79,6 +79,13 @@ export default class WriterIndexProvider extends ProviderContract {
       this.processEvent(payload)
     })
 
+    // The TODO tags are configurable; a change invalidates every entry
+    this._config.on('update', (option: string) => {
+      if (option === 'editor.todoTags') {
+        this.reindex().catch(err => this._logger.error(`[WriterIndex] Could not reindex: ${err.message as string}`, err))
+      }
+    })
+
     await this.reindex()
   }
 
@@ -152,6 +159,7 @@ export default class WriterIndexProvider extends ProviderContract {
         shiftHeadings: exportConfig.manuscriptShiftHeadings,
         stripTodos: exportConfig.manuscriptStripTodos,
         stripFieldMarkers: exportConfig.manuscriptStripFieldMarkers,
+        todoTags: this._config.get().editor.todoTags,
         pandocWorkingDir: path.dirname(rootPath)
       }
     )
@@ -234,8 +242,8 @@ export default class WriterIndexProvider extends ProviderContract {
    */
   private async scanFile (filePath: string): Promise<void> {
     const content = await fs.readFile(filePath, 'utf-8')
-    const { appLang } = this._config.get()
-    this._index.set(filePath, parseWriterFile(filePath, content, appLang))
+    const { appLang, editor } = this._config.get()
+    this._index.set(filePath, parseWriterFile(filePath, content, appLang, editor.todoTags))
   }
 
   /**

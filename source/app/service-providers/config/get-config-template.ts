@@ -151,6 +151,8 @@ export interface ConfigOptions {
     countChars: boolean
     inputMode: 'default'|'vim'|'emacs'
     defaultTextDirection: 'auto'|'ltr'|'rtl'
+    editorMargins: 'small'|'medium'|'large'
+    todoTags: string[]
     boldFormatting: '**'|'__'
     italicFormatting: '_'|'*'
     highlightFormatting: 'span'|'=='
@@ -373,6 +375,8 @@ export function getConfigTemplate (): ConfigOptions {
       countChars: false, // Set to true to enable counting characters instead of words
       inputMode: 'default', // Can be default, vim, emacs
       defaultTextDirection: 'auto', // Base direction for documents without a frontmatter override
+      editorMargins: 'medium', // Whitespace around the editor text: small, medium, large
+      todoTags: [ 'TODO', 'FIXME', 'QUESTION', 'SOURCE' ], // Tags harvested into the TODO panel
       boldFormatting: '**', // Can be ** or __
       italicFormatting: '_', // Can be * or _
       highlightFormatting: '==', // Can be 'span' or ==

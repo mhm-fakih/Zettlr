@@ -33,6 +33,11 @@ export const DEFAULT_TODO_TAGS = [ 'TODO', 'FIXME', 'QUESTION', 'SOURCE' ]
  * @return  {WriterTodo[]}           All found annotations, in document order
  */
 export function scanTodos (content: string, tags: string[] = DEFAULT_TODO_TAGS): WriterTodo[] {
+  // Tags are user-configurable: drop empties and escape regex characters
+  tags = tags
+    .map(tag => tag.trim())
+    .filter(tag => tag.length > 0)
+    .map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   if (tags.length === 0) {
     return []
   }

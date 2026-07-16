@@ -14,9 +14,10 @@
  * END HEADER
  */
 
-import { StateField, type Extension } from '@codemirror/state'
+import { type EditorState, StateField, type Extension } from '@codemirror/state'
 import { EditorView, gutter, GutterMarker } from '@codemirror/view'
 import { scanTodos } from '@common/util/scan-todos'
+import { configField, configUpdateEffect } from '../util/configuration'
 
 class TodoMarker extends GutterMarker {
   toDOM (): HTMLElement {
@@ -33,14 +34,20 @@ const todoMarker = new TodoMarker()
  * The set of 1-indexed lines containing a TODO annotation
  */
 const todoLinesField = StateField.define<Set<number>>({
-  create (state) {
-    return new Set(scanTodos(state.doc.toString()).map(todo => todo.line))
+  create (state: EditorState) {
+    const tags = state.field(configField, false)?.todoTags
+    return new Set(scanTodos(state.doc.toString(), tags).map(todo => todo.line))
   },
   update (value, transaction) {
-    if (!transaction.docChanged) {
+    // NOTE: transaction.state must not be accessed here; take a changed tag
+    // list from the config effect itself, else from the start state.
+    const tagEffect = transaction.effects.find(effect => effect.is(configUpdateEffect) && effect.value.todoTags !== undefined)
+    if (!transaction.docChanged && tagEffect === undefined) {
       return value
     }
-    return new Set(scanTodos(transaction.newDoc.toString()).map(todo => todo.line))
+
+    const tags = tagEffect?.value.todoTags ?? transaction.startState.field(configField, false)?.todoTags
+    return new Set(scanTodos(transaction.newDoc.toString(), tags).map(todo => todo.line))
   }
 })
 

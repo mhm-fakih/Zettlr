@@ -4,7 +4,7 @@
     class="main-editor-wrapper"
     role="region"
     v-bind:aria-label="`Markdown Editor: Currently editing file ${pathBasename(props.file.path)}`"
-    v-bind:style="{ 'font-size': `${fontSize}px` }"
+    v-bind:style="{ 'font-size': `${fontSize}px`, '--editor-scroller-padding': editorMarginPadding }"
     v-bind:class="{
       'code-file': !isMarkdown,
       fullscreen: distractionFree
@@ -219,6 +219,15 @@ const mainEditorWrapper = ref<HTMLDivElement|null>(null)
 const useH1 = computed<boolean>(() => configStore.config.fileNameDisplay.includes('heading'))
 const useTitle = computed<boolean>(() => configStore.config.fileNameDisplay.includes('title'))
 const fontSize = computed<number>(() => configStore.config.editor.fontSize)
+
+// The whitespace between the editor text and its container (configurable)
+const editorMarginPadding = computed<string>(() => {
+  switch (configStore.config.editor.editorMargins) {
+    case 'small': return '10px'
+    case 'large': return '50px 120px'
+    default: return '50px'
+  }
+})
 const globalSearchResults = computed(() => windowStateStore.searchResults)
 const snippets = computed(() => windowStateStore.snippets)
 const tags = computed(() => tagStore.tags)
@@ -276,6 +285,7 @@ const editorConfiguration = computed<EditorConfigOptions>(() => {
     linkWithIDIfPossible: zkn.linkWithIDIfPossible,
     inputMode: editor.inputMode,
     defaultTextDirection: editor.defaultTextDirection,
+    todoTags: editor.todoTags,
     lintMarkdown: editor.lint.markdown,
     // The editor only needs to know if it should use languageTool
     lintLanguageTool: editor.lint.languageTool.active,
@@ -701,7 +711,8 @@ function maybeHighlightSearchResults (): void {
   position: relative;
 
   .cm-editor {
-    .cm-scroller { padding: 50px 50px; }
+    // The whitespace around the text is configurable (Preferences > Editor)
+    .cm-scroller { padding: var(--editor-scroller-padding, 50px); }
     .cm-content { min-width: 0; }
   }
 
