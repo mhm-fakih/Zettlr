@@ -48,6 +48,14 @@ const BROADCAST_DEBOUNCE_MS = 300
  */
 const REINDEX_BATCH_SIZE = 20
 
+/**
+ * Files larger than this are not indexed. NOTE: Zettlr counts .txt as a
+ * Markdown extension, so workspaces can contain very large "Markdown" files
+ * (data dumps, logs). Parsing those is pointless and slow, and upstream's
+ * file parser skips them for the same reason.
+ */
+const MAX_INDEX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+
 export default class WriterIndexProvider extends ProviderContract {
   private readonly _index: Map<string, WriterFileEntry>
   private _broadcastTimeout: ReturnType<typeof setTimeout>|undefined
@@ -273,6 +281,13 @@ export default class WriterIndexProvider extends ProviderContract {
    * (Re-)parses a single file into the index.
    */
   private async scanFile (filePath: string): Promise<void> {
+    const { size } = await fs.stat(filePath)
+    if (size > MAX_INDEX_FILE_SIZE) {
+      this._index.delete(filePath)
+      this._logger.verbose(`[WriterIndex] Skipping ${filePath}: too large (${Math.round(size / 1048576)} MB)`)
+      return
+    }
+
     const content = await fs.readFile(filePath, 'utf-8')
     const { appLang, editor } = this._config.get()
     this._index.set(filePath, parseWriterFile(filePath, content, appLang, editor.todoTags))
