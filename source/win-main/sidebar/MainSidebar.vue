@@ -4,11 +4,14 @@
     the upstream tab bar) -->
     <div id="sidebar-tab-container">
       <SidebarPanel
-        v-bind:label="trans('Manuscript')"
-        v-bind:collapsed="isCollapsed('manuscript')"
-        v-on:toggle="togglePanel('manuscript')"
+        v-bind:label="trans('Table of contents')"
+        v-bind:collapsed="isCollapsed('toc')"
+        v-on:toggle="togglePanel('toc')"
       >
-        <ManuscriptTab v-on:jtl="emit('jtl', $event)"></ManuscriptTab>
+        <ToCTab
+          v-on:move-section="emit('move-section', $event)"
+          v-on:jump-to-line="emit('jump-to-line', $event)"
+        ></ToCTab>
       </SidebarPanel>
       <SidebarPanel
         v-bind:label="trans('TODO')"
@@ -70,13 +73,15 @@ import ReferencesTab from './ReferencesTab.vue'
 import RelatedFilesTab from './RelatedFilesTab.vue'
 import OtherFilesTab from './OtherFilesTab.vue'
 import SidebarPanel from './SidebarPanel.vue'
-import ManuscriptTab from './writer/ManuscriptTab.vue'
+import ToCTab from './ToCTab.vue'
 import TodoTab from './writer/TodoTab.vue'
 import CodesTab from './writer/CodesTab.vue'
 
 const COLLAPSED_PANELS_KEY = 'sidebar-collapsed-panels'
 
 const emit = defineEmits<{
+  (e: 'move-section', data: { from: number, to: number }): void
+  (e: 'jump-to-line', line: number): void
   (e: 'jtl', data: { filePath: string, lineNumber: number }): void
 }>()
 

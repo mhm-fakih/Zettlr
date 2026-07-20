@@ -30,17 +30,14 @@
       ></cds-icon>
     </div>
 
-    <!-- The active note's table of contents, above the file explorer -->
-    <div id="file-manager-toc">
+    <!-- The manuscript (master TOC) tree, above the file explorer -->
+    <div id="file-manager-manuscript" v-bind:class="{ expanded: !manuscriptCollapsed }">
       <SidebarPanel
-        v-bind:label="tocLabel"
-        v-bind:collapsed="tocCollapsed"
-        v-on:toggle="toggleToc"
+        v-bind:label="manuscriptLabel"
+        v-bind:collapsed="manuscriptCollapsed"
+        v-on:toggle="toggleManuscript"
       >
-        <ToCTab
-          v-on:move-section="emit('move-section', $event)"
-          v-on:jump-to-line="emit('jump-to-line', $event)"
-        ></ToCTab>
+        <ManuscriptTab v-on:jtl="emit('jtl', $event)"></ManuscriptTab>
       </SidebarPanel>
     </div>
 
@@ -105,7 +102,7 @@
 import FileTree from './FileTree.vue'
 import FileList from './FileList.vue'
 import SidebarPanel from '../sidebar/SidebarPanel.vue'
-import ToCTab from '../sidebar/ToCTab.vue'
+import ManuscriptTab from '../sidebar/writer/ManuscriptTab.vue'
 import { trans } from '@common/i18n-renderer'
 import { nextTick, ref, computed, watch, onMounted } from 'vue'
 import { useConfigStore } from 'source/pinia'
@@ -116,18 +113,17 @@ const ipcRenderer = window.ipc
 const props = defineProps<{ windowId: string }>()
 
 const emit = defineEmits<{
-  (e: 'move-section', data: { from: number, to: number }): void
-  (e: 'jump-to-line', line: number): void
+  (e: 'jtl', data: { filePath: string, lineNumber: number }): void
 }>()
 
-// The ToC panel below the file explorer (writer fork)
-const TOC_COLLAPSED_KEY = 'file-manager-toc-collapsed'
-const tocLabel = trans('Table of contents')
-const tocCollapsed = ref<boolean>(window.localStorage.getItem(TOC_COLLAPSED_KEY) === 'true')
+// The manuscript panel above the file explorer (writer fork)
+const MANUSCRIPT_COLLAPSED_KEY = 'file-manager-manuscript-collapsed'
+const manuscriptLabel = trans('Manuscript')
+const manuscriptCollapsed = ref<boolean>(window.localStorage.getItem(MANUSCRIPT_COLLAPSED_KEY) === 'true')
 
-function toggleToc (): void {
-  tocCollapsed.value = !tocCollapsed.value
-  window.localStorage.setItem(TOC_COLLAPSED_KEY, String(tocCollapsed.value))
+function toggleManuscript (): void {
+  manuscriptCollapsed.value = !manuscriptCollapsed.value
+  window.localStorage.setItem(MANUSCRIPT_COLLAPSED_KEY, String(manuscriptCollapsed.value))
 }
 
 const previous = ref<'file-list'|'directories'|undefined>(undefined) // Can be "file-list" or "directories"
@@ -423,20 +419,22 @@ body #file-manager {
     height: calc(100% - 37px); // 100% minus the filter
   }
 
-  // The note ToC above the file explorer
-  #file-manager-toc {
-    flex: 0 1 auto;
-    max-height: 45%;
+  // The manuscript tree above the file explorer
+  #file-manager-manuscript {
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     border-bottom: 1px solid rgba(128, 128, 128, 0.35);
 
-    // Unlike in the right sidebar (where expanded panels share the full
-    // column), this panel is content-sized up to the 45% cap; when capped,
-    // the panel body scrolls.
+    // Fixed height while expanded (60% of the column); collapsed leaves
+    // only the header bar
+    &.expanded {
+      flex: 0 0 60%;
+    }
+
     section.sidebar-panel:not(.collapsed) {
-      flex: 0 1 auto;
+      flex: 1 1 0;
       min-height: 0;
     }
   }

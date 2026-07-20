@@ -2,10 +2,10 @@
   <div class="manuscript-node">
     <div
       class="manuscript-node-row"
-      v-bind:class="{
+      v-bind:class="[ headingClass, {
         'is-file': node.type === 'file',
         'is-error': node.error !== undefined
-      }"
+      } ]"
       v-bind:style="{ paddingLeft: `${depth * 12}px` }"
       v-bind:title="rowTitle"
       v-on:click="activate"
@@ -77,6 +77,14 @@ const nodeKey = computed(() => `${props.parentKey}/${props.node.type}:${props.no
 const hasChildren = computed(() => props.node.children.length > 0)
 const isCollapsed = computed(() => props.collapsedKeys.has(nodeKey.value))
 
+// Fixed per-level heading colors (levels 5+ share one class)
+const headingClass = computed(() => {
+  if (props.node.type !== 'heading' || props.node.level === undefined) {
+    return ''
+  }
+  return `manuscript-heading-${Math.min(props.node.level, 5)}`
+})
+
 const errorLabel = computed(() => {
   switch (props.node.error) {
     case 'missing': return trans('Not found')
@@ -125,6 +133,13 @@ body {
         cursor: default;
         span.manuscript-node-label { opacity: 0.6; }
       }
+
+      // Fixed heading colors: H1-2 dark greens, H3-4 dark oranges, H5+ gray
+      &.manuscript-heading-1 span.manuscript-node-label { color: var(--writer-heading-1); }
+      &.manuscript-heading-2 span.manuscript-node-label { color: var(--writer-heading-2); }
+      &.manuscript-heading-3 span.manuscript-node-label { color: var(--writer-heading-3); }
+      &.manuscript-heading-4 span.manuscript-node-label { color: var(--writer-heading-4); }
+      &.manuscript-heading-5 span.manuscript-node-label { color: var(--writer-heading-5); }
 
       span.manuscript-node-chevron {
         flex-shrink: 0;

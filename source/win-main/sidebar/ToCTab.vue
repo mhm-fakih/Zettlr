@@ -245,17 +245,22 @@ div.toc-tab {
   }
 }
 
-// Table of Contents entries (previously scoped to the right sidebar; the
-// panel now lives below the file manager)
+// Table of Contents entries
 div.toc-entry-container {
   display: flex;
   margin-bottom: 10px;
+
+  // Fixed heading colors: H1-2 dark greens, H3-4 dark oranges, H5+ gray
+  &.toc-heading-1 { div.toc-level, div.toc-entry { color: var(--writer-heading-1); } }
+  &.toc-heading-2 { div.toc-level, div.toc-entry { color: var(--writer-heading-2); } }
+  &.toc-heading-3 { div.toc-level, div.toc-entry { color: var(--writer-heading-3); } }
+  &.toc-heading-4 { div.toc-level, div.toc-entry { color: var(--writer-heading-4); } }
+  &.toc-heading-5, &.toc-heading-6 { div.toc-level, div.toc-entry { color: var(--writer-heading-5); } }
 
   div.toc-level {
     flex-shrink: 1;
     padding: 0px 5px;
     font-weight: bold;
-    color: var(--system-accent-color, --c-primary);
   }
 
   div.toc-entry {

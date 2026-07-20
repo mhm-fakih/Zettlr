@@ -260,6 +260,14 @@ function handleDoubleClick (origin: 'titlebar'|'toolbar'): void {
   --accent-orange: rgb(246, 130, 28);
   --accent-yellow: rgb(229, 180, 31);
   --accent-green: rgb(98, 186, 70);
+
+  // Writer fork: fixed heading colors for the TOC trees (H1-2 dark greens,
+  // H3-4 dark oranges, H5+ gray)
+  --writer-heading-1: #14532d;
+  --writer-heading-2: #2e7d32;
+  --writer-heading-3: #9a3412;
+  --writer-heading-4: #d97706;
+  --writer-heading-5: #6b7280;
 }
 
 body {

@@ -24,8 +24,7 @@
           v-show="mainSplitViewVisibleComponent === 'fileManager'"
           ref="file-manager"
           v-bind:window-id="windowId"
-          v-on:move-section="moveSection($event)"
-          v-on:jump-to-line="genericJtl($event)"
+          v-on:jtl="jtl($event.filePath, $event.lineNumber, false)"
         ></FileManager>
         <!-- ... or the global search, if selected -->
         <GlobalSearch
@@ -68,6 +67,8 @@
           <template #view2>
             <!-- Second side: Sidebar -->
             <MainSidebar
+              v-on:move-section="moveSection($event)"
+              v-on:jump-to-line="genericJtl($event)"
               v-on:jtl="jtl($event.filePath, $event.lineNumber, false)"
             ></MainSidebar>
           </template>
