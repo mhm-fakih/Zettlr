@@ -43,9 +43,15 @@ export type WriterProviderIPCAPI = IPCAPI<{
 
 const BROADCAST_DEBOUNCE_MS = 300
 
+/**
+ * How many files to parse before yielding back to the event loop
+ */
+const REINDEX_BATCH_SIZE = 20
+
 export default class WriterIndexProvider extends ProviderContract {
   private readonly _index: Map<string, WriterFileEntry>
   private _broadcastTimeout: ReturnType<typeof setTimeout>|undefined
+  private _reindexToken: number
 
   constructor (
     private readonly _logger: LogProvider,
@@ -54,6 +60,7 @@ export default class WriterIndexProvider extends ProviderContract {
   ) {
     super()
     this._index = new Map()
+    this._reindexToken = 0
 
     ipcMain.handle('writer-provider', async (event, message: WriterProviderIPCAPI) => {
       const { command } = message
@@ -82,11 +89,25 @@ export default class WriterIndexProvider extends ProviderContract {
     // The TODO tags are configurable; a change invalidates every entry
     this._config.on('update', (option: string) => {
       if (option === 'editor.todoTags') {
-        this.reindex().catch(err => this._logger.error(`[WriterIndex] Could not reindex: ${err.message as string}`, err))
+        this.startReindex()
       }
     })
 
-    await this.reindex()
+    // NOTE: The initial scan must not block the boot sequence -- on large
+    // workspaces it can take a while, and the app is perfectly usable while
+    // the index fills up (the panels refresh via the 'writer-index' event).
+    this.startReindex()
+  }
+
+  /**
+   * Kicks off a full reindex in the background, discarding a run that may
+   * still be in progress.
+   */
+  private startReindex (): void {
+    this._reindexToken++
+    const token = this._reindexToken
+    this.reindex(token)
+      .catch(err => this._logger.error(`[WriterIndex] Could not build the index: ${err.message as string}`, err))
   }
 
   public async shutdown (): Promise<void> {
@@ -221,17 +242,28 @@ export default class WriterIndexProvider extends ProviderContract {
   /**
    * Performs the initial full scan of all loaded Markdown files.
    */
-  private async reindex (): Promise<void> {
+  private async reindex (token: number): Promise<void> {
     const descriptors = (await this._fsal.getAllLoadedDescriptors())
       .filter(descriptor => descriptor.type === 'file' && hasMarkdownExt(descriptor.path))
 
-    await Promise.all(descriptors.map(async descriptor => {
-      try {
-        await this.scanFile(descriptor.path)
-      } catch (err: any) {
-        this._logger.error(`[WriterIndex] Could not scan ${descriptor.path}: ${err.message as string}`, err)
+    // Parsing is CPU-bound, so work through the files in small batches and
+    // yield in between: the main process stays responsive on large workspaces
+    for (let i = 0; i < descriptors.length; i += REINDEX_BATCH_SIZE) {
+      if (token !== this._reindexToken) {
+        return // A newer reindex has superseded this one
       }
-    }))
+
+      const batch = descriptors.slice(i, i + REINDEX_BATCH_SIZE)
+      await Promise.all(batch.map(async descriptor => {
+        try {
+          await this.scanFile(descriptor.path)
+        } catch (err: any) {
+          this._logger.error(`[WriterIndex] Could not scan ${descriptor.path}: ${err.message as string}`, err)
+        }
+      }))
+
+      await new Promise(resolve => setImmediate(resolve))
+    }
 
     this._logger.info(`[WriterIndex] Indexed ${this._index.size} files.`)
     this.scheduleBroadcast()

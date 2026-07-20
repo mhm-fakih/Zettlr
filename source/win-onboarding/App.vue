@@ -84,14 +84,15 @@
     The nav must adapt to whether we are running the onboarding flow or the new
     update notification
   -->
+  <!--
+    Writer fork: the window doubles as a splash screen and dismisses itself
+    after a few seconds; show the remaining time prominently.
+  -->
+  <div v-if="secondsLeft > 0" id="splash-countdown">
+    {{ startingInLabel }}
+  </div>
+
   <nav>
-    <!--
-      Writer fork: the window doubles as a splash screen and dismisses itself
-      after a few seconds; show the remaining time next to the button.
-    -->
-    <span v-if="secondsLeft > 0" id="splash-countdown">
-      {{ startingInLabel }}
-    </span>
     <template v-if="mode === 'update'">
       <button v-on:click="close">
         {{ getStartedLabel }}
@@ -195,7 +196,9 @@ const buildDateLabel = trans('Build date: %s', buildDate)
 // SPLASH_DURATION_MS; mirror that here so the user sees the remaining time.
 const SPLASH_SECONDS = 5
 const secondsLeft = ref(SPLASH_SECONDS)
-const startingInLabel = computed(() => trans('Starting in %s…', String(secondsLeft.value)))
+// NOTE: Built without trans() so the countdown also shows before any
+// translation is loaded.
+const startingInLabel = computed(() => `Starting in ${secondsLeft.value}…`)
 
 const countdownInterval = setInterval(() => {
   secondsLeft.value -= 1
@@ -328,10 +331,20 @@ nav {
   align-items: center;
   -webkit-app-region: no-drag;
 
-  #splash-countdown {
-    font-size: 12px;
-    opacity: 0.7;
-  }
+}
+
+#splash-countdown {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  z-index: 100;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: white;
+  background-color: rgba(37, 53, 146, 0.9); // --blue-1
+  pointer-events: none;
 }
 
 #onboarding-wrapper {
