@@ -23,15 +23,22 @@
           v-on:click="startExport"
         >{{ exportLabel }}</button>
       </div>
-      <ManuscriptNode
-        v-if="tree !== null"
-        v-bind:node="tree"
-        v-bind:depth="0"
-        v-bind:parent-key="''"
-        v-bind:collapsed-keys="collapsedKeys"
-        v-on:toggle="toggleNode"
-        v-on:jtl="emit('jtl', $event)"
-      ></ManuscriptNode>
+      <template v-if="tree !== null">
+        <!-- The manuscript renders as one note's ToC: headings only -->
+        <div class="manuscript-total" dir="auto">
+          {{ tree.label }} — {{ localiseNumber(tree.words) }} {{ wordsLabel }}
+        </div>
+        <ManuscriptNode
+          v-for="(child, idx) in tree.children"
+          v-bind:key="idx"
+          v-bind:node="child"
+          v-bind:depth="0"
+          v-bind:parent-key="''"
+          v-bind:collapsed-keys="collapsedKeys"
+          v-on:toggle="toggleNode"
+          v-on:jtl="emit('jtl', $event)"
+        ></ManuscriptNode>
+      </template>
     </template>
 
     <PopoverExport
@@ -64,6 +71,7 @@
 
 import { ref, computed, watch, onMounted } from 'vue'
 import { trans } from '@common/i18n-renderer'
+import localiseNumber from '@common/util/localise-number'
 import type { ManuscriptTreeNode, WriterRoot } from '@dts/common/writer'
 import ManuscriptNode from './ManuscriptNode.vue'
 import PopoverExport from '../../PopoverExport.vue'
@@ -91,6 +99,7 @@ const isAssembling = ref<boolean>(false)
 const assembledPath = ref<string>('')
 const exportLabel = trans('Export…')
 const exportTitle = trans('Assemble the manuscript and export it via Pandoc')
+const wordsLabel = trans('words')
 
 function startExport (): void {
   if (selectedRoot.value === '' || isAssembling.value) {
@@ -156,10 +165,28 @@ async function refreshTree (): Promise<void> {
     return
   }
 
-  tree.value = await ipcRenderer.invoke('writer-provider', {
+  const fullTree: ManuscriptTreeNode|null = await ipcRenderer.invoke('writer-provider', {
     command: 'get-tree',
     payload: { rootPath: selectedRoot.value }
   })
+
+  tree.value = fullTree !== null ? inlineIncludedFiles(fullTree) : null
+}
+
+/**
+ * Renders the manuscript as if it were a single note: included files don't
+ * appear as nodes themselves — their headings are spliced in at the position
+ * of the embed. Unresolvable includes (error nodes) remain visible.
+ */
+function inlineIncludedFiles (node: ManuscriptTreeNode): ManuscriptTreeNode {
+  const children = node.children.flatMap(child => {
+    if (child.type === 'file' && child.error === undefined) {
+      return inlineIncludedFiles(child).children
+    }
+    return [inlineIncludedFiles(child)]
+  })
+
+  return { ...node, children }
 }
 </script>
 
@@ -169,6 +196,13 @@ body {
     p.manuscript-empty {
       font-size: 12px;
       opacity: 0.8;
+    }
+
+    div.manuscript-total {
+      font-size: 10px;
+      opacity: 0.7;
+      margin-bottom: 6px;
+      unicode-bidi: isolate;
     }
 
     div.manuscript-controls {

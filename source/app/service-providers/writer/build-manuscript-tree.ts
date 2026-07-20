@@ -142,6 +142,10 @@ function buildFileNode (
       } else {
         child = buildFileNode(resolved.path, entries, resolve, depth + 1, [ ...ancestry, filePath ])
         includedWords += child.words
+        // The enclosing heading sections also contain the transcluded words
+        for (const container of stack.slice(1)) {
+          container.words += child.words
+        }
       }
 
       stack[stack.length - 1].children.push(child)
