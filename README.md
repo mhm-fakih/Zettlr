@@ -79,6 +79,21 @@ automatically — there is no project setting.
 The full format contract for generating master documents programmatically is
 in **[docs/MASTER-TOC-FORMAT.md](docs/MASTER-TOC-FORMAT.md)**.
 
+#### Which files the index reads
+
+The manuscript, TODO and Codes panels are fed by one main-process index. It
+reads **only** `.md`, `.markdown`, `.mkd`, `.mdx`, `.rmd` and `.qmd`.
+
+- Note this is deliberately narrower than Zettlr's own definition of a Markdown
+  file, which also counts **`.txt`** — workspaces tend to hold `.txt` data
+  dumps and logs that are not notes. (Zettlr's editor still opens `.txt` files
+  as Markdown; they just don't feed the panels.)
+- Files larger than **10 MB** are skipped, matching upstream's parser.
+- The index is built **in the background** after the window opens, in batches
+  that yield to the event loop, and updated incrementally from file-watcher
+  events. On large workspaces the panels fill in a moment after startup rather
+  than delaying it.
+
 ### 3. TODO panel
 
 - Harvests `TODO:`, `FIXME:`, `QUESTION:`, `SOURCE:` (configurable —
@@ -125,10 +140,12 @@ hands it to Zettlr's regular Pandoc pipeline, so every export format works.
   (small / medium / large).
 - **Toolbar** hidden by default, toggle with **View → Toggle Toolbar**
   (`Ctrl/Cmd+Shift+9`). Sidebar shown by default (`Ctrl/Cmd+Shift+0`).
-- **Welcome window acts as a splash screen:** it shows for 5 seconds with a
-  "Starting in N…" countdown and then dismisses itself (identical to clicking
-  *Get started*). Clicking or pressing a key cancels the countdown so the setup
-  pages can still be used.
+- **Welcome window acts as a splash screen on every start:** it shows for 5
+  seconds with a "Starting in N…" countdown and then dismisses itself
+  (identical to clicking *Get started*). Upstream only shows this window on a
+  first install or after a version change; the fork adds a `splash` mode for
+  regular starts. Clicking or pressing a key cancels the countdown, so the
+  first-start setup pages can still be walked through.
 - Accent color is dark blue instead of Zettlr green.
 
 ### 7. DB-sync field markers
@@ -184,7 +201,7 @@ yarn lint            # eslint + vue-tsc
 
 `yarn start` never touches your real notes: it uses `resources/test` as the
 workspace and `resources/test-cfg` as the config directory. Use `--clean` to
-reset both (also the only way to re-trigger the splash screen).
+reset both.
 
 ### Building a distributable
 
