@@ -85,6 +85,13 @@
     update notification
   -->
   <nav>
+    <!--
+      Writer fork: the window doubles as a splash screen and dismisses itself
+      after a few seconds; show the remaining time next to the button.
+    -->
+    <span v-if="secondsLeft > 0" id="splash-countdown">
+      {{ startingInLabel }}
+    </span>
     <template v-if="mode === 'update'">
       <button v-on:click="close">
         {{ getStartedLabel }}
@@ -183,6 +190,30 @@ const getStartedLabel = trans('Get started')
 const whatsChangedLabel = trans('See what\'s changed')
 const buildDate = DateTime.fromISO(__BUILD_DATE__).toLocaleString({ dateStyle: 'full' })
 const buildDateLabel = trans('Build date: %s', buildDate)
+
+// Splash countdown: the main process dismisses this window automatically after
+// SPLASH_DURATION_MS; mirror that here so the user sees the remaining time.
+const SPLASH_SECONDS = 5
+const secondsLeft = ref(SPLASH_SECONDS)
+const startingInLabel = computed(() => trans('Starting in %s…', String(secondsLeft.value)))
+
+const countdownInterval = setInterval(() => {
+  secondsLeft.value -= 1
+  if (secondsLeft.value <= 0) {
+    clearInterval(countdownInterval)
+  }
+}, 1000)
+
+// Any interaction with the window means the user wants to look around, so stop
+// showing the countdown (the main process keeps its own timer, see below).
+function stopCountdown (): void {
+  clearInterval(countdownInterval)
+  secondsLeft.value = 0
+  sendMessage({ command: 'cancel-splash' })
+}
+
+window.addEventListener('pointerdown', stopCountdown, { once: true })
+window.addEventListener('keydown', stopCountdown, { once: true })
 
 // Onboarding workflow labels
 const startSetupLabel = ref(trans('Start setup'))
@@ -296,6 +327,11 @@ nav {
   justify-content: center;
   align-items: center;
   -webkit-app-region: no-drag;
+
+  #splash-countdown {
+    font-size: 12px;
+    opacity: 0.7;
+  }
 }
 
 #onboarding-wrapper {

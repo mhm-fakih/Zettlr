@@ -31,7 +31,11 @@
     </div>
 
     <!-- The manuscript (master TOC) tree, above the file explorer -->
-    <div id="file-manager-manuscript" v-bind:class="{ expanded: !manuscriptCollapsed }">
+    <div
+      id="file-manager-manuscript"
+      v-bind:class="{ expanded: !manuscriptCollapsed }"
+      v-bind:style="manuscriptCollapsed ? undefined : { flexBasis: `${manuscriptHeight}%` }"
+    >
       <SidebarPanel
         v-bind:label="manuscriptLabel"
         v-bind:collapsed="manuscriptCollapsed"
@@ -39,6 +43,12 @@
       >
         <ManuscriptTab v-on:jtl="emit('jtl', $event)"></ManuscriptTab>
       </SidebarPanel>
+      <!-- Drag to resize the manuscript panel -->
+      <div
+        v-if="!manuscriptCollapsed"
+        class="manuscript-resize-handle"
+        v-on:mousedown.prevent="startResize"
+      ></div>
     </div>
 
     <!-- Filter field -->
@@ -124,6 +134,43 @@ const manuscriptCollapsed = ref<boolean>(window.localStorage.getItem(MANUSCRIPT_
 function toggleManuscript (): void {
   manuscriptCollapsed.value = !manuscriptCollapsed.value
   window.localStorage.setItem(MANUSCRIPT_COLLAPSED_KEY, String(manuscriptCollapsed.value))
+}
+
+// The panel's height (percent of the file manager column) is user-resizable
+const MANUSCRIPT_HEIGHT_KEY = 'file-manager-manuscript-height'
+const MANUSCRIPT_MIN_HEIGHT = 10
+const MANUSCRIPT_MAX_HEIGHT = 85
+const manuscriptHeight = ref<number>(loadManuscriptHeight())
+
+function loadManuscriptHeight (): number {
+  const stored = Number(window.localStorage.getItem(MANUSCRIPT_HEIGHT_KEY))
+  return Number.isFinite(stored) && stored > 0 ? stored : 60
+}
+
+function startResize (event: MouseEvent): void {
+  const container = rootElement.value
+  if (container === null) {
+    return
+  }
+
+  const containerTop = container.getBoundingClientRect().top
+  const containerHeight = container.getBoundingClientRect().height
+
+  const onMove = (moveEvent: MouseEvent): void => {
+    const percent = ((moveEvent.clientY - containerTop) / containerHeight) * 100
+    manuscriptHeight.value = Math.min(MANUSCRIPT_MAX_HEIGHT, Math.max(MANUSCRIPT_MIN_HEIGHT, percent))
+  }
+
+  const onUp = (): void => {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    document.body.style.cursor = ''
+    window.localStorage.setItem(MANUSCRIPT_HEIGHT_KEY, String(manuscriptHeight.value))
+  }
+
+  document.body.style.cursor = 'row-resize'
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
 }
 
 const previous = ref<'file-list'|'directories'|undefined>(undefined) // Can be "file-list" or "directories"
@@ -425,17 +472,27 @@ body #file-manager {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+    position: relative;
 
-    // Fixed height while expanded (60% of the column); collapsed leaves
-    // only the header bar
+    // While expanded the height is fixed (default 60% of the column) and
+    // user-resizable via the handle; collapsed leaves only the header bar
     &.expanded {
-      flex: 0 0 60%;
+      flex-grow: 0;
+      flex-shrink: 0;
     }
 
     section.sidebar-panel:not(.collapsed) {
       flex: 1 1 0;
       min-height: 0;
+    }
+
+    div.manuscript-resize-handle {
+      flex: 0 0 auto;
+      height: 5px;
+      cursor: row-resize;
+      background-color: rgba(128, 128, 128, 0.35);
+
+      &:hover { background-color: var(--system-accent-color, rgba(128, 128, 128, 0.6)); }
     }
   }
 
