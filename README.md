@@ -227,13 +227,12 @@ list, sidebar composition, config template, HTML emitter).
 
 ### Git identity
 
-This machine has no global git identity; the repo sets `user.name`/`user.email`
-locally (`akil <akil@deep-cool.lan>`). On a new machine, either configure a
-global identity or repeat:
+If git cannot auto-detect an identity on a new machine (it fails when the
+hostname has no domain suffix), configure one globally or per-repository:
 
 ```bash
-git config user.name "akil"
-git config user.email "akil@deep-cool.lan"
+git config user.name "Your Name"
+git config user.email "you@example.com"
 ```
 
 ---
