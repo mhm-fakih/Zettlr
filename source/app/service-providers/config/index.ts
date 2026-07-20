@@ -234,10 +234,11 @@ export default class ConfigProvider extends ProviderContract {
       this._rules.push(new ValidationRule(VALIDATE_RULES[i], VALIDATE_PROPERTIES[i]))
     }
 
-    // Now for the fun part: Show a brand new onboarding experience.
-    if (this._firstStart || this._newVersion) {
-      await showOnboardingWindow(this, this._logger, this._firstStart ? 'first-start' : 'update')
-    }
+    // Now for the fun part: Show a brand new onboarding experience. On regular
+    // starts, the same window doubles as a splash screen that dismisses itself
+    // after a few seconds (writer fork).
+    const mode = this._firstStart ? 'first-start' : (this._newVersion ? 'update' : 'splash')
+    await showOnboardingWindow(this, this._logger, mode)
   }
 
   // Enable global event listening to updates of the config

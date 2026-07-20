@@ -20,7 +20,7 @@ import path from 'path'
 import { markdownToAST, extractASTNodes } from '@common/modules/markdown-utils'
 import type { ASTNode, Heading } from '@common/modules/markdown-utils/markdown-ast'
 import { countAll } from '@common/util/counter'
-import { hasMarkdownExt } from '@common/util/file-extention-checks'
+import { isWriterIndexable } from '@common/util/is-writer-indexable'
 import { scanTodos, DEFAULT_TODO_TAGS } from '@common/util/scan-todos'
 import { scanLdlCodes } from '@common/util/scan-codes'
 import type { WriterFileEntry, WriterHeading, WriterInclude } from '@dts/common/writer'
@@ -85,7 +85,7 @@ export function matchEmbedTarget (source: string): string|undefined {
 
   // Only Markdown targets are structural; targets without extension are
   // resolved like wikilinks (i.e. to Markdown files) later on.
-  if (path.extname(target) !== '' && !hasMarkdownExt(target)) {
+  if (path.extname(target) !== '' && !isWriterIndexable(target)) {
     return undefined
   }
 

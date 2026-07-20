@@ -93,7 +93,7 @@
   </div>
 
   <nav>
-    <template v-if="mode === 'update'">
+    <template v-if="mode === 'update' || mode === 'splash'">
       <button v-on:click="close">
         {{ getStartedLabel }}
       </button>

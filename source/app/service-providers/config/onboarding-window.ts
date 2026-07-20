@@ -60,7 +60,7 @@ export type OnboardingIPCMessage = OnboardingIPCCloseMessage |
  *
  * @param   {LogProvider}  logger  The logger for potential error messages.
  */
-export async function showOnboardingWindow (config: ConfigProvider, logger: LogProvider, mode: 'first-start'|'update'): Promise<void> {
+export async function showOnboardingWindow (config: ConfigProvider, logger: LogProvider, mode: 'first-start'|'update'|'splash'): Promise<void> {
   const conf: BrowserWindowConstructorOptions = {
     width: 800,
     height: 600,

@@ -21,7 +21,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { app, ipcMain } from 'electron'
 import broadcastIpcMessage from '@common/util/broadcast-ipc-message'
-import { hasMarkdownExt } from '@common/util/file-extention-checks'
+import { isWriterIndexable } from '@common/util/is-writer-indexable'
 import ProviderContract, { type IPCAPI } from '../provider-contract'
 import type LogProvider from '@providers/log'
 import type ConfigProvider from '@providers/config'
@@ -226,7 +226,7 @@ export default class WriterIndexProvider extends ProviderContract {
     }
 
     const { descriptor } = payload
-    if (descriptor.type === 'file' && hasMarkdownExt(descriptor.path)) {
+    if (descriptor.type === 'file' && isWriterIndexable(descriptor.path)) {
       this.scanFile(descriptor.path)
         .then(() => { this.scheduleBroadcast() })
         .catch((err: any) => this._logger.error(`[WriterIndex] Could not scan ${descriptor.path}: ${err.message as string}`, err))
@@ -252,7 +252,7 @@ export default class WriterIndexProvider extends ProviderContract {
    */
   private async reindex (token: number): Promise<void> {
     const descriptors = (await this._fsal.getAllLoadedDescriptors())
-      .filter(descriptor => descriptor.type === 'file' && hasMarkdownExt(descriptor.path))
+      .filter(descriptor => descriptor.type === 'file' && isWriterIndexable(descriptor.path))
 
     // Parsing is CPU-bound, so work through the files in small batches and
     // yield in between: the main process stays responsive on large workspaces
@@ -322,7 +322,7 @@ export default class WriterIndexProvider extends ProviderContract {
     // Fallback: name-based resolution à la wikilinks, but collecting all
     // matches so ambiguity can be reported
     const normalized = cleaned.split('/').join(path.sep)
-    const suffixes = hasMarkdownExt(normalized)
+    const suffixes = isWriterIndexable(normalized)
       ? [normalized]
       : [ normalized + '.md', normalized + '.markdown' ]
 
