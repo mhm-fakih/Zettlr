@@ -2,11 +2,26 @@
 
 ## GUI and Functionality
 
-(nothing here)
+- **Feature (fork)**: Inline include previews. In a manuscript, each structural
+  include line is followed by a preview of the included note on a tinted
+  background. Clicking the preview edits the note in place in a nested editor,
+  so the manuscript can be edited as if it were one file. Panels survive
+  scrolling and save when focus leaves them.
+- **Feature (fork)**: Preferences → Editor → *Include previews* sets the
+  preview background for light and dark themes.
+- **Feature (fork)**: The Manuscript panel has *Regenerate* and *Build site*
+  buttons that run `make-manuscript.py` and `make-site.py` from the root's
+  folder when those scripts exist.
 
 ## Under the Hood
 
-(nothing here)
+- New IPC commands: `writer-provider` → `resolve-include`, `read-include`,
+  `get-root-actions`, `run-root-action`; `documents-provider` →
+  `release-document` (frees a document no tab holds).
+- `matchEmbedTarget` and `WRITER_INDEX_EXT` moved to `source/common/util/` so
+  the renderer and the writer index share one include rule.
+- `MarkdownEditor.focusOnLoad` lets embedded editors load without stealing
+  focus.
 
 # 4.6.0
 

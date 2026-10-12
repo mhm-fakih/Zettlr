@@ -79,6 +79,44 @@ automatically — there is no project setting.
 The full format contract for generating master documents programmatically is
 in **[docs/MASTER-TOC-FORMAT.md](docs/MASTER-TOC-FORMAT.md)**.
 
+#### Inline include previews (edit the manuscript as one file)
+
+In the editor (raw or preview mode), every structural include line is followed
+by a **preview of the included note's content**, so the manuscript reads like
+one document.
+
+- The preview sits on a light rectangle so it's visibly not part of the root
+  file. Colors: Preferences → Editor → *Include previews* (light and dark
+  theme separately).
+- The header shows the file name (click it to open the note in its own tab)
+  and its word count. Arabic content renders right-to-left (`dir="auto"`).
+- **Click the preview to edit the note in place.** The panel turns into a
+  full nested editor on the included file, sharing Zettlr's document
+  authority with any open tab of the same file — edits in either show up in
+  both. Several panels can be open at once.
+- Edits are **saved when focus leaves the panel**, and otherwise by Zettlr's
+  autosave setting. Panels scrolled out of view are parked (saved if dirty)
+  and come back with their editor, cursor and focus intact. Panels whose
+  include line is removed are closed and their file released.
+- Nested includes render too; missing, ambiguous, circular and too-deep
+  includes show an error instead of a preview.
+- Limits: Ctrl/Cmd+S, Find, the statusbar and the ToC act on the root file,
+  not the focused panel.
+
+#### Manuscript panel actions
+
+If the manuscript root's folder contains the scripts below, the Manuscript
+panel shows a button for each. They run `python3 <script> <folder>`; the
+status line under the buttons shows the result (hover for the full output).
+
+| Button | Script | What it's expected to do |
+|---|---|---|
+| **Regenerate** | `make-manuscript.py` | Rewrite the root's includes from the folder's notes |
+| **Build site** | `make-site.py` | Build `site/index.html`, which is then opened in the browser |
+
+The scripts live with the notes, not in Zettlr, so each folder can lay out its
+manuscript its own way.
+
 #### Which files the index reads
 
 The manuscript, TODO and Codes panels are fed by one main-process index. It
@@ -258,13 +296,14 @@ git config user.email "you@example.com"
 
 | Path | What |
 |---|---|
-| `source/common/modules/markdown-editor/writer/` | Editor extensions: bidi, TODO gutter, LDL highlight, direction statusbar |
+| `source/common/modules/markdown-editor/writer/` | Editor extensions: bidi, TODO gutter, LDL highlight, direction statusbar, include previews (`includes.ts`) |
 | `source/app/service-providers/writer/` | Main-process index: file parser, manuscript tree, export assembly, IPC |
 | `source/win-main/sidebar/writer/` | Manuscript, TODO and Codes panels |
 | `source/win-main/sidebar/SidebarPanel.vue` | The collapsible panel shell |
-| `source/common/util/scan-todos.ts`, `scan-codes.ts`, `text-direction.ts` | Shared scanners/helpers |
+| `source/common/util/scan-todos.ts`, `scan-codes.ts`, `text-direction.ts`, `match-embed-target.ts` | Shared scanners/helpers (main and renderer) |
 | `source/types/common/writer.ts` | Shared types |
 | `test/writer-index.spec.ts` | Parser, scanner, tree and assembly tests |
+| `test/match-embed-target.spec.ts` | Include-line recognition tests |
 | `docs/MASTER-TOC-FORMAT.md` | Format contract for generated manuscripts |
 | `ARCHITECTURE-NOTES.md` | Recon of Zettlr's internals (how the fork hooks in) |
 | `SPEC-writing-ide.md` | The original specification |
@@ -277,6 +316,8 @@ git config user.email "you@example.com"
 | `editor.defaultTextDirection` | Preferences → Editor → Writing direction | `auto` |
 | `editor.editorMargins` | Preferences → Editor → Editor margins | `medium` |
 | `editor.todoTags` | Preferences → Editor → TODO tags | TODO, FIXME, QUESTION, SOURCE |
+| `editor.includePreviewBackground` | Preferences → Editor → Include previews | `#f3f6fa` |
+| `editor.includePreviewBackgroundDark` | Preferences → Editor → Include previews | `#34373c` |
 | `export.manuscriptShiftHeadings` | Preferences → Import/Export | on |
 | `export.manuscriptStripTodos` | Preferences → Import/Export | on |
 | `export.manuscriptStripFieldMarkers` | Preferences → Import/Export | on |
