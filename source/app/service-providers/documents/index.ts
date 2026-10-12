@@ -138,6 +138,7 @@ export type DocumentManagerIPCAPI = IPCAPI<{
   'set-pinned': LeafLoc & { path: string, pinned: boolean }
   'retrieve-tab-config': { windowId: string }
   'save-file': { path: string }
+  'release-document': { path: string }
   'open-file': LeafLoc & { path: string, newTab: boolean }
   'close-file': LeafLoc & { path: string }
   'close-file-everywhere': { path: string }
@@ -295,6 +296,9 @@ export default class DocumentManager extends ProviderContract {
         }
         case 'save-file': {
           return await this.saveFile(payload.path)
+        }
+        case 'release-document': {
+          return await this.releaseDocument(payload.path)
         }
         case 'open-file': {
           const { windowId, leafId, path, newTab } = payload
@@ -984,6 +988,42 @@ current contents from the editor somewhere else, and restart the application.`
       await this.synchronizeDatabases()
     }
     return ret
+  }
+
+  /**
+   * Writer fork: drops a document that was loaded for an inline include
+   * editor (via `getDocument`) once that editor is gone. Documents open in a
+   * tab are left alone; unsaved changes are saved first.
+   *
+   * @param   {string}            filePath  The file path in question
+   *
+   * @return  {Promise<boolean>}            True if the document was released
+   */
+  public async releaseDocument (filePath: string): Promise<boolean> {
+    let isOpenInTab = false
+    await this.forEachLeaf(async tabMan => {
+      if (tabMan.openFiles.some(f => f.path === filePath)) {
+        isOpenInTab = true
+      }
+      return false
+    })
+
+    if (isOpenInTab) {
+      return false
+    }
+
+    if (this.isModified(filePath) && !await this.saveFile(filePath)) {
+      return false
+    }
+
+    const idx = this.documents.findIndex(doc => doc.filePath === filePath)
+    if (idx < 0) {
+      return false
+    }
+
+    this.documents.splice(idx, 1)
+    this.syncWatchedFilePaths()
+    return true
   }
 
   /**

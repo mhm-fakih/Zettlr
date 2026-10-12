@@ -153,6 +153,8 @@ export interface ConfigOptions {
     defaultTextDirection: 'auto'|'ltr'|'rtl'
     editorMargins: 'small'|'medium'|'large'
     todoTags: string[]
+    includePreviewBackground: string
+    includePreviewBackgroundDark: string
     boldFormatting: '**'|'__'
     italicFormatting: '_'|'*'
     highlightFormatting: 'span'|'=='
@@ -377,6 +379,8 @@ export function getConfigTemplate (): ConfigOptions {
       defaultTextDirection: 'auto', // Base direction for documents without a frontmatter override
       editorMargins: 'medium', // Whitespace around the editor text: small, medium, large
       todoTags: [ 'TODO', 'FIXME', 'QUESTION', 'SOURCE' ], // Tags harvested into the TODO panel
+      includePreviewBackground: '#f3f6fa', // Background of inline include previews (light mode)
+      includePreviewBackgroundDark: '#34373c', // ... and in dark mode
       boldFormatting: '**', // Can be ** or __
       italicFormatting: '_', // Can be * or _
       highlightFormatting: '==', // Can be 'span' or ==

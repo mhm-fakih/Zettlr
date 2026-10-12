@@ -20,77 +20,13 @@ import path from 'path'
 import { markdownToAST, extractASTNodes } from '@common/modules/markdown-utils'
 import type { ASTNode, Heading } from '@common/modules/markdown-utils/markdown-ast'
 import { countAll } from '@common/util/counter'
-import { isWriterIndexable } from '@common/util/is-writer-indexable'
 import { scanTodos, DEFAULT_TODO_TAGS } from '@common/util/scan-todos'
 import { scanLdlCodes } from '@common/util/scan-codes'
+import { matchEmbedTarget } from '@common/util/match-embed-target'
 import type { WriterFileEntry, WriterHeading, WriterInclude } from '@dts/common/writer'
 
-// An embed that is the entire (trimmed) source of a top-level paragraph:
-// ![alt](target "optional title") respectively ![[target]]
-const MD_EMBED_RE = /^!\[[^\]]*\]\(([^)]+)\)$/
-const WIKI_EMBED_RE = /^!\[\[([^\]]+)\]\]$/
-
-/**
- * Extracts the actual target from the contents of an inline-link parenthesis,
- * i.e. strips an optional title and angle brackets.
- */
-function cleanMdTarget (raw: string): string {
-  raw = raw.trim()
-  if (raw.startsWith('<')) {
-    const end = raw.indexOf('>')
-    return end > -1 ? raw.slice(1, end) : raw.slice(1)
-  }
-
-  const match = /^(\S+)(?:\s+["'(].*)?$/.exec(raw)
-  return match !== null ? match[1] : raw
-}
-
-/**
- * Extracts the target from a wikilink embed's contents: strips an optional
- * `|title` segment and a `#heading` anchor.
- */
-function cleanWikiTarget (raw: string): string {
-  return raw.split('|')[0].split('#')[0].trim()
-}
-
-/**
- * If the given source is exactly one structural-include line (an embed alone
- * on its line targeting a Markdown file), returns the raw target — else
- * undefined. Shared between the index parser and the manuscript assembler.
- *
- * @param   {string}            source  One line (or paragraph source)
- *
- * @return  {string|undefined}          The raw include target
- */
-export function matchEmbedTarget (source: string): string|undefined {
-  source = source.trim()
-  if (source.includes('\n')) {
-    return undefined
-  }
-
-  let target: string|undefined
-  const mdMatch = MD_EMBED_RE.exec(source)
-  if (mdMatch !== null) {
-    target = cleanMdTarget(mdMatch[1])
-  } else {
-    const wikiMatch = WIKI_EMBED_RE.exec(source)
-    if (wikiMatch !== null) {
-      target = cleanWikiTarget(wikiMatch[1])
-    }
-  }
-
-  if (target === undefined || target === '') {
-    return undefined
-  }
-
-  // Only Markdown targets are structural; targets without extension are
-  // resolved like wikilinks (i.e. to Markdown files) later on.
-  if (path.extname(target) !== '' && !isWriterIndexable(target)) {
-    return undefined
-  }
-
-  return target
-}
+// The include matcher is shared with the editor's inline include previews
+export { matchEmbedTarget }
 
 /**
  * Parses a Markdown file into its writer index entry.

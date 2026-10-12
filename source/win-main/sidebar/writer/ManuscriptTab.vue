@@ -23,6 +23,22 @@
           v-on:click="startExport"
         >{{ exportLabel }}</button>
       </div>
+      <div v-if="rootActions.length > 0" class="manuscript-actions">
+        <button
+          v-for="action in rootActions"
+          v-bind:key="action"
+          type="button"
+          v-bind:disabled="runningAction !== null"
+          v-bind:title="ACTION_TITLES[action]"
+          v-on:click="runAction(action)"
+        >{{ runningAction === action ? workingLabel : ACTION_LABELS[action] }}</button>
+      </div>
+      <div
+        v-if="actionStatus !== null"
+        class="manuscript-action-status"
+        v-bind:class="{ failed: !actionStatus.ok }"
+        v-bind:title="actionStatus.output"
+      >{{ actionStatus.summary }}</div>
       <template v-if="tree !== null">
         <!-- The manuscript renders as one note's ToC: headings only -->
         <div class="manuscript-total" dir="auto">
@@ -73,6 +89,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { trans } from '@common/i18n-renderer'
 import localiseNumber from '@common/util/localise-number'
 import type { ManuscriptTreeNode, WriterRoot } from '@dts/common/writer'
+import type { WriterRootAction, WriterRootActionResult } from '@providers/writer'
 import ManuscriptNode from './ManuscriptNode.vue'
 import PopoverExport from '../../PopoverExport.vue'
 
@@ -116,12 +133,64 @@ function startExport (): void {
     .finally(() => { isAssembling.value = false })
 }
 
+// Root actions: folder scripts next to the root (make-manuscript.py,
+// make-site.py) that regenerate the manuscript or build its static site
+const ACTION_LABELS: Record<WriterRootAction, string> = {
+  'regenerate-manuscript': trans('Regenerate'),
+  'build-site': trans('Build site')
+}
+const ACTION_TITLES: Record<WriterRootAction, string> = {
+  'regenerate-manuscript': trans('Rebuild this manuscript from the notes in its folder (make-manuscript.py)'),
+  'build-site': trans('Build the HTML site of this manuscript and open it (make-site.py)')
+}
+const workingLabel = trans('Working…')
+const rootActions = ref<WriterRootAction[]>([])
+const runningAction = ref<WriterRootAction|null>(null)
+const actionStatus = ref<{ ok: boolean, summary: string, output: string }|null>(null)
+
+function runAction (action: WriterRootAction): void {
+  if (selectedRoot.value === '' || runningAction.value !== null) {
+    return
+  }
+
+  runningAction.value = action
+  actionStatus.value = null
+  ipcRenderer.invoke('writer-provider', {
+    command: 'run-root-action',
+    payload: { rootPath: selectedRoot.value, action }
+  })
+    .then((result: WriterRootActionResult) => {
+      const lines = result.output.split('\n').filter(line => line.trim() !== '')
+      actionStatus.value = {
+        ok: result.ok,
+        // The scripts print their result first; failures end in the error
+        summary: (result.ok ? lines[0] : lines[lines.length - 1]) ?? (result.ok ? trans('Done') : trans('Failed')),
+        output: result.output
+      }
+    })
+    .catch(err => {
+      actionStatus.value = { ok: false, summary: String(err.message), output: String(err.message) }
+    })
+    .finally(() => { runningAction.value = null })
+}
+
+async function refreshRootActions (): Promise<void> {
+  rootActions.value = selectedRoot.value === ''
+    ? []
+    : await ipcRenderer.invoke('writer-provider', {
+      command: 'get-root-actions',
+      payload: { rootPath: selectedRoot.value }
+    })
+}
+
 onMounted(refresh)
 ipcRenderer.on('writer-index', refresh)
 
 watch(selectedRoot, () => {
   window.localStorage.setItem(SELECTED_ROOT_KEY, selectedRoot.value)
+  actionStatus.value = null
   refreshTree().catch(err => console.error(err))
+  refreshRootActions().catch(err => console.error(err))
 })
 
 function loadCollapsedKeys (): Set<string> {
@@ -146,7 +215,7 @@ function toggleNode (key: string): void {
 
 function refresh (): void {
   refreshRoots()
-    .then(async () => await refreshTree())
+    .then(async () => await Promise.all([ refreshTree(), refreshRootActions() ]))
     .catch(err => console.error(err))
 }
 
@@ -218,6 +287,25 @@ body {
       button.manuscript-export-button {
         flex: 0 0 auto;
       }
+    }
+
+    div.manuscript-actions {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+
+      button { flex: 1 1 0; }
+    }
+
+    div.manuscript-action-status {
+      font-size: 10px;
+      opacity: 0.75;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &.failed { color: #c33; opacity: 1; }
     }
   }
 }

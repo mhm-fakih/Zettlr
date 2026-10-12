@@ -19,7 +19,7 @@
 
 import { promises as fs } from 'fs'
 import path from 'path'
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, shell } from 'electron'
 import broadcastIpcMessage from '@common/util/broadcast-ipc-message'
 import { isWriterIndexable } from '@common/util/is-writer-indexable'
 import ProviderContract, { type IPCAPI } from '../provider-contract'
@@ -31,6 +31,7 @@ import type { ManuscriptTreeNode, WriterFileEntry, WriterRoot } from '@dts/commo
 import { parseWriterFile } from './parse-writer-file'
 import { buildManuscriptTree } from './build-manuscript-tree'
 import { assembleManuscript, assembledFileName } from './assemble-manuscript'
+import { runCommand } from '../../util/run-command'
 
 export type WriterProviderIPCAPI = IPCAPI<{
   'get-roots': undefined
@@ -39,7 +40,30 @@ export type WriterProviderIPCAPI = IPCAPI<{
   'get-codes': undefined
   'get-index': undefined
   'assemble-manuscript': { rootPath: string }
+  'resolve-include': { sourcePath: string, target: string }
+  'read-include': { filePath: string }
+  'get-root-actions': { rootPath: string }
+  'run-root-action': { rootPath: string, action: WriterRootAction }
 }>
+
+/**
+ * Folder scripts the Manuscript panel can run for a root. They live next to
+ * the root file and receive its folder as their only argument.
+ */
+export type WriterRootAction = 'regenerate-manuscript'|'build-site'
+
+const ROOT_ACTION_SCRIPTS: Record<WriterRootAction, string> = {
+  'regenerate-manuscript': 'make-manuscript.py',
+  'build-site': 'make-site.py'
+}
+
+export interface WriterRootActionResult {
+  ok: boolean
+  /**
+   * The script's output (stdout, or stderr on failure), for the panel
+   */
+  output: string
+}
 
 const BROADCAST_DEBOUNCE_MS = 300
 
@@ -85,6 +109,14 @@ export default class WriterIndexProvider extends ProviderContract {
         return Object.fromEntries(this._index)
       } else if (command === 'assemble-manuscript') {
         return await this.assembleForExport(message.payload.rootPath)
+      } else if (command === 'resolve-include') {
+        return this.resolveInclude(message.payload.sourcePath, message.payload.target)
+      } else if (command === 'read-include') {
+        return await this.readInclude(message.payload.filePath)
+      } else if (command === 'get-root-actions') {
+        return await this.getRootActions(message.payload.rootPath)
+      } else if (command === 'run-root-action') {
+        return await this.runRootAction(message.payload.rootPath, message.payload.action)
       }
     })
   }
@@ -148,6 +180,84 @@ export default class WriterIndexProvider extends ProviderContract {
    */
   public getEntry (filePath: string): WriterFileEntry|undefined {
     return this._index.get(filePath)
+  }
+
+  /**
+   * Returns the contents and word count of an indexed file, for the editor's
+   * inline include previews. Restricted to indexed files so the renderer
+   * cannot use this to read arbitrary paths.
+   */
+  public async readInclude (filePath: string): Promise<{ content: string, words: number }|undefined> {
+    const entry = this._index.get(filePath)
+    if (entry === undefined) {
+      return undefined
+    }
+
+    return { content: await fs.readFile(filePath, 'utf-8'), words: entry.words }
+  }
+
+  /**
+   * Returns the root actions available for a manuscript root, i.e. those
+   * whose script exists in the root's folder.
+   */
+  public async getRootActions (rootPath: string): Promise<WriterRootAction[]> {
+    if (!this._index.has(rootPath)) {
+      return []
+    }
+
+    const actions: WriterRootAction[] = []
+    for (const [ action, script ] of Object.entries(ROOT_ACTION_SCRIPTS) as Array<[WriterRootAction, string]>) {
+      try {
+        await fs.access(path.join(path.dirname(rootPath), script))
+        actions.push(action)
+      } catch (err) {
+        // Script not present: action not offered
+      }
+    }
+    return actions
+  }
+
+  /**
+   * Runs a root action's script with Python in the root's folder. Only the
+   * fixed script names above can be run, and only for indexed roots. After
+   * building the site, opens it in the default browser.
+   */
+  public async runRootAction (rootPath: string, action: WriterRootAction): Promise<WriterRootActionResult> {
+    const script = ROOT_ACTION_SCRIPTS[action]
+    if (script === undefined || !(await this.getRootActions(rootPath)).includes(action)) {
+      return { ok: false, output: `Script not available: ${String(script)}` }
+    }
+
+    const folder = path.dirname(rootPath)
+    const python = process.platform === 'win32' ? 'python' : 'python3'
+    this._logger.info(`[WriterIndex] Running ${script} in ${folder}`)
+
+    let result
+    try {
+      result = await runCommand(python, [ path.join(folder, script), folder ])
+    } catch (err: any) {
+      return { ok: false, output: `Could not run ${python}: ${err.message as string}` }
+    }
+
+    if (result.code !== 0) {
+      this._logger.error(`[WriterIndex] ${script} failed (${result.code}): ${result.stderr}`)
+      return { ok: false, output: result.stderr.trim() !== '' ? result.stderr.trim() : result.stdout.trim() }
+    }
+
+    if (action === 'build-site') {
+      // NOTE: Not awaited: depending on the desktop's opener, the promise may
+      // only settle once the browser exits (or never).
+      const sitePath = path.join(folder, 'site', 'index.html')
+      shell.openPath(sitePath)
+        .then(error => {
+          if (error !== '') {
+            this._logger.error(`[WriterIndex] Could not open ${sitePath}: ${error}`)
+          }
+        })
+        .catch(err => this._logger.error(`[WriterIndex] Could not open ${sitePath}`, err))
+    }
+
+    return { ok: true, output: result.stdout.trim() }
   }
 
   /**
@@ -298,7 +408,7 @@ export default class WriterIndexProvider extends ProviderContract {
    * including file first, then a name-based fallback over the whole index.
    * Ambiguous names are surfaced as errors, never guessed.
    */
-  private resolveInclude (sourcePath: string, target: string): { path?: string, error?: 'missing'|'ambiguous' } {
+  public resolveInclude (sourcePath: string, target: string): { path?: string, error?: 'missing'|'ambiguous' } {
     let cleaned = target
     try {
       cleaned = decodeURI(target)

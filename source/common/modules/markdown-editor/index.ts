@@ -208,6 +208,15 @@ export default class MarkdownEditor extends EventEmitter {
   private config: EditorConfiguration
 
   /**
+   * Whether (re)loading the document should focus the editor. Set to false
+   * for editors that must not steal focus on a reload (e.g. inline include
+   * editors); they still keep focus if they had it.
+   *
+   * @var {boolean}
+   */
+  public focusOnLoad: boolean = true
+
+  /**
    * The database cache for the various autocompletes.
    *
    * @var {any}
@@ -365,6 +374,7 @@ export default class MarkdownEditor extends EventEmitter {
    */
   async loadDocument (persistentState?: EditorViewPersistentState): Promise<void> {
     const { content, type, startVersion } = await this.authority.fetchDoc(this.representedDocument)
+    const shouldFocus = this.focusOnLoad || this._instance.hasFocus
 
     // The documents contents have changed, so we must recreate the state
     const extensions = this._getExtensions(this.representedDocument, type, startVersion)
@@ -411,7 +421,9 @@ export default class MarkdownEditor extends EventEmitter {
       this._instance.contentDOM.classList.add('code')
     }
 
-    this._instance.focus()
+    if (shouldFocus) {
+      this._instance.focus()
+    }
 
     this.emit('loaded')
   }

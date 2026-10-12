@@ -82,6 +82,24 @@ export function getEditorFields (config: ConfigOptions): PreferencesFieldset[] {
       ]
     },
     {
+      title: trans('Include previews'),
+      infoString: trans('Included notes are shown below their include line on this background, to mark them as previews. Click a preview to edit the note in place.'),
+      group: PreferencesGroups.Editor,
+      help: undefined,
+      fields: [
+        {
+          type: 'color',
+          label: trans('Background (light mode)'),
+          model: 'editor.includePreviewBackground'
+        },
+        {
+          type: 'color',
+          label: trans('Background (dark mode)'),
+          model: 'editor.includePreviewBackgroundDark'
+        }
+      ]
+    },
+    {
       title: trans('Markdown rendering'),
       infoString: trans('Check to enable live rendering of various Markdown elements to formatted appearance. This hides formatting characters (such as **text**) or renders images instead of their link.'),
       group: PreferencesGroups.Editor,

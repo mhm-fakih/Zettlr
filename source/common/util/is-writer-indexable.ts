@@ -17,11 +17,9 @@
  */
 
 import path from 'path'
+import { WRITER_INDEX_EXT } from './writer-index-ext'
 
-/**
- * The extensions the writer index treats as manuscript notes
- */
-export const WRITER_INDEX_EXT = [ '.md', '.markdown', '.mkd', '.mdx', '.rmd', '.qmd' ]
+export { WRITER_INDEX_EXT }
 
 /**
  * Whether the given file should be read by the writer index.

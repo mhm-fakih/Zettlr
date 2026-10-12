@@ -286,6 +286,8 @@ const editorConfiguration = computed<EditorConfigOptions>(() => {
     inputMode: editor.inputMode,
     defaultTextDirection: editor.defaultTextDirection,
     todoTags: editor.todoTags,
+    includePreviewBackground: editor.includePreviewBackground,
+    includePreviewBackgroundDark: editor.includePreviewBackgroundDark,
     lintMarkdown: editor.lint.markdown,
     // The editor only needs to know if it should use languageTool
     lintLanguageTool: editor.lint.languageTool.active,

@@ -62,6 +62,13 @@ export interface EditorConfiguration {
     id: string
     library: string
   }
+  /**
+   * Writer fork: for editors nested inside an include preview, the files
+   * including this one (outermost first). Used for cycle and depth checks.
+   */
+  includeAncestors: string[]
+  includePreviewBackground: string
+  includePreviewBackgroundDark: string
   boldFormatting: '**'|'__'
   italicFormatting: '*'|'_'
   highlightFormatting: 'span'|'=='
@@ -129,6 +136,9 @@ export function getDefaultConfig (): EditorConfiguration {
       id: '',
       library: CITEPROC_MAIN_DB
     },
+    includeAncestors: [],
+    includePreviewBackground: '#f3f6fa',
+    includePreviewBackgroundDark: '#34373c',
     boldFormatting: '**',
     italicFormatting: '_',
     highlightFormatting: '==',
