@@ -126,9 +126,11 @@ export default class WriterIndexProvider extends ProviderContract {
       this.processEvent(payload)
     })
 
-    // The TODO tags are configurable; a change invalidates every entry
+    // The TODO tags are configurable; a change invalidates every entry. A
+    // workspace (or root file) being opened or closed changes which files
+    // belong in the index at all.
     this._config.on('update', (option: string) => {
-      if (option === 'editor.todoTags') {
+      if (option === 'editor.todoTags' || option === 'openPaths') {
         this.startReindex()
       }
     })
@@ -381,6 +383,18 @@ export default class WriterIndexProvider extends ProviderContract {
       }))
 
       await new Promise(resolve => setImmediate(resolve))
+    }
+
+    if (token !== this._reindexToken) {
+      return
+    }
+
+    // Drop files that no longer belong to any open workspace or root file
+    const loaded = new Set(descriptors.map(descriptor => descriptor.path))
+    for (const key of [...this._index.keys()]) {
+      if (!loaded.has(key)) {
+        this._index.delete(key)
+      }
     }
 
     this._logger.info(`[WriterIndex] Indexed ${this._index.size} files.`)
