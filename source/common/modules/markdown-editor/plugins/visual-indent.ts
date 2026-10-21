@@ -25,11 +25,14 @@ import {
   type ViewUpdate
 } from '@codemirror/view'
 import { SpaceWidget } from '../renderers/render-emphasis'
+import guessTextDirection from '@common/util/text-direction'
+import { effectiveDirection } from '../writer/bidi'
 
 // Each `.cm-line` has a padding of `0 2px 0 6px` as per CodeMirror's
 // base styles from somewhere in the library. We need to account for that
-// not to induce any problems when adjusting the indentation
-const BASE_PADDING = 6
+// not to induce any problems when adjusting the indentation. The indentation
+// sits on the line's inline-start side, which is the right side for RTL lines.
+const BASE_PADDING = { ltr: 6, rtl: 2 }
 
 // These regexes are used to determine indentation level
 // Leading whitespace characters
@@ -76,6 +79,12 @@ function render (view: EditorView, measurements?: Map<string, number>): RangeSet
       // Get the position of the first non-formatting, non-whitespace character
       const columnLineTextStart = match[1].length
 
+      // Writer fork: mirror the per-line dir attribute set by writer/bidi.ts,
+      // so that RTL lines are indented from the right instead of being pushed
+      // out of the visible area by a left-side measurement.
+      const docDirection = effectiveDirection(view.state)
+      const direction = docDirection === 'auto' ? guessTextDirection(line.text) : docDirection
+
       // Now that we know we need to indent this line, schedule a measurement so
       // that in the next round of this code running we have an accurate
       // indentation even for non-monospaced text. What we want to measure is
@@ -83,7 +92,7 @@ function render (view: EditorView, measurements?: Map<string, number>): RangeSet
       // line as a key, we cause (a) duplicated measurements (`* One` and `* Two`
       // require the same indentation) and (b) cause cache misses which results in
       // jumpy behavior when the user adds novel characters to the line.
-      const measurementKey = line.text.slice(0, columnLineTextStart).replace('\t', ' '.repeat(view.state.tabSize))
+      const measurementKey = direction + ':' + line.text.slice(0, columnLineTextStart).replace('\t', ' '.repeat(view.state.tabSize))
 
       view.requestMeasure({
         read (view) {
@@ -100,21 +109,23 @@ function render (view: EditorView, measurements?: Map<string, number>): RangeSet
             folded.next()
           }
 
-          const base = view.contentDOM.getBoundingClientRect().left
-          const after = view.coordsAtPos(pos)?.left ?? 0
-          if (after === 0) {
+          const contentRect = view.contentDOM.getBoundingClientRect()
+          const coords = view.coordsAtPos(pos)
+          if (coords === null) {
             return // Could not retrieve coordinates
           }
           // Note that this continuously updates our measurements after any layout
           // changes
-          measurements?.set(measurementKey, after - base)
+          const indent = direction === 'rtl' ? contentRect.right - coords.right : coords.left - contentRect.left
+          measurements?.set(measurementKey, indent)
         },
         key: measurementKey
       })
 
       const indent = measurements?.get(measurementKey)
       if (indent !== undefined) {
-        const deco = Decoration.line({ attributes: { style: `text-indent: -${indent-BASE_PADDING}px; padding-left: ${indent}px;` } })
+        const side = direction === 'rtl' ? 'right' : 'left'
+        const deco = Decoration.line({ attributes: { style: `text-indent: -${indent - BASE_PADDING[direction]}px; padding-${side}: ${indent}px;` } })
         ranges.push(deco.range(line.from))
       }
     }

@@ -157,14 +157,9 @@ export class AppServiceContainer {
     await this._informativeBoot(this._cssProvider, 'CSSProvider')
     await this._informativeBoot(this._configProvider, 'ConfigProvider')
 
-    // If the booting isn't done after 1 second, begin displaying a splash
-    // screen to indicate to the user that things are happening, even if the
-    // main window(s) don't yet show. NOTE: We have to defer showing the splash
-    // screen until AFTER the config provider has been booted, as that one may
-    // show an onboarding window.
-    const timeout = setTimeout(() => {
-      showSplashScreen(this.log)
-    }, 1000)
+    // Writer fork: always show the splash screen while booting (the onboarding
+    // window is disabled). NOTE: It needs the config provider to be booted.
+    showSplashScreen(this.log)
 
     await this._informativeBoot(this._fsal, 'FSAL')
 
@@ -216,7 +211,6 @@ export class AppServiceContainer {
         .catch(err => this.log.error('[AppServiceContainer] Could not open tutorial', err))
     }
 
-    clearTimeout(timeout)
     closeSplashScreen()
 
     // After everything has been booted up, show the windows

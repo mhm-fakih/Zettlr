@@ -226,9 +226,17 @@ const getFilteredDirectoryContents = computed(() => {
 
   const filter = matchQuery(q, useTitle.value, useH1.value)
 
-  // Filter based on the query (remember: there's an ID and a "props" property)
+  // Filter based on the query (remember: there's an ID and a "props" property).
+  // A directory matching the query shows all of its contents.
+  const matchedDirs = originalContents
+    .filter(element => element.props.type === 'directory' && filter(element.props))
+    .map(element => element.props.path)
+
   return originalContents.filter(element => {
-    return filter(element.props)
+    const absPath = element.props.path
+    return filter(element.props) || matchedDirs.some(dir => {
+      return absPath.startsWith(dir) && (absPath[dir.length] === '/' || absPath[dir.length] === '\\')
+    })
   })
 })
 

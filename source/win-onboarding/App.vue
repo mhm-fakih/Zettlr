@@ -84,16 +84,8 @@
     The nav must adapt to whether we are running the onboarding flow or the new
     update notification
   -->
-  <!--
-    Writer fork: the window doubles as a splash screen and dismisses itself
-    after a few seconds; show the remaining time prominently.
-  -->
-  <div v-if="secondsLeft > 0" id="splash-countdown">
-    {{ startingInLabel }}
-  </div>
-
   <nav>
-    <template v-if="mode === 'update' || mode === 'splash'">
+    <template v-if="mode === 'update'">
       <button v-on:click="close">
         {{ getStartedLabel }}
       </button>
@@ -191,32 +183,6 @@ const getStartedLabel = trans('Get started')
 const whatsChangedLabel = trans('See what\'s changed')
 const buildDate = DateTime.fromISO(__BUILD_DATE__).toLocaleString({ dateStyle: 'full' })
 const buildDateLabel = trans('Build date: %s', buildDate)
-
-// Splash countdown: the main process dismisses this window automatically after
-// SPLASH_DURATION_MS; mirror that here so the user sees the remaining time.
-const SPLASH_SECONDS = 5
-const secondsLeft = ref(SPLASH_SECONDS)
-// NOTE: Built without trans() so the countdown also shows before any
-// translation is loaded.
-const startingInLabel = computed(() => `Starting in ${secondsLeft.value}…`)
-
-const countdownInterval = setInterval(() => {
-  secondsLeft.value -= 1
-  if (secondsLeft.value <= 0) {
-    clearInterval(countdownInterval)
-  }
-}, 1000)
-
-// Any interaction with the window means the user wants to look around, so stop
-// showing the countdown (the main process keeps its own timer, see below).
-function stopCountdown (): void {
-  clearInterval(countdownInterval)
-  secondsLeft.value = 0
-  sendMessage({ command: 'cancel-splash' })
-}
-
-window.addEventListener('pointerdown', stopCountdown, { once: true })
-window.addEventListener('keydown', stopCountdown, { once: true })
 
 // Onboarding workflow labels
 const startSetupLabel = ref(trans('Start setup'))
@@ -330,21 +296,6 @@ nav {
   justify-content: center;
   align-items: center;
   -webkit-app-region: no-drag;
-
-}
-
-#splash-countdown {
-  position: fixed;
-  right: 20px;
-  bottom: 16px;
-  z-index: 100;
-  padding: 6px 14px;
-  border-radius: 14px;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  color: white;
-  background-color: rgba(37, 53, 146, 0.9); // --blue-1
-  pointer-events: none;
 }
 
 #onboarding-wrapper {

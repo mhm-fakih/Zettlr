@@ -31,16 +31,6 @@ import { loadData } from '@common/i18n-main'
 import setWindowChrome from '../windows/set-window-chrome'
 import attachLogger from '../windows/attach-logger'
 
-/**
- * How long the onboarding window stays on screen before dismissing itself
- * (writer fork: it is used as a splash screen)
- */
-const SPLASH_DURATION_MS = 5000
-
-export interface OnboardingIPCCancelSplashMessage {
-  command: 'cancel-splash'
-}
-
 export interface OnboardingIPCCloseMessage {
   command: 'close'
 }
@@ -51,8 +41,7 @@ export interface OnboardingIPCSetAppLangMessage {
 }
 
 export type OnboardingIPCMessage = OnboardingIPCCloseMessage |
-  OnboardingIPCSetAppLangMessage |
-  OnboardingIPCCancelSplashMessage
+  OnboardingIPCSetAppLangMessage
 
 /**
  * Shows the onboarding window for Zettlr. This function will block until the
@@ -60,7 +49,7 @@ export type OnboardingIPCMessage = OnboardingIPCCloseMessage |
  *
  * @param   {LogProvider}  logger  The logger for potential error messages.
  */
-export async function showOnboardingWindow (config: ConfigProvider, logger: LogProvider, mode: 'first-start'|'update'|'splash'): Promise<void> {
+export async function showOnboardingWindow (config: ConfigProvider, logger: LogProvider, mode: 'first-start'|'update'): Promise<void> {
   const conf: BrowserWindowConstructorOptions = {
     width: 800,
     height: 600,
@@ -96,18 +85,8 @@ export async function showOnboardingWindow (config: ConfigProvider, logger: LogP
       logger.error(`Could not load URL ${ONBOARDING_WEBPACK_ENTRY}: ${e.message as string}`, e)
     })
 
-  // Writer fork: the onboarding window acts as a splash screen -- it is shown
-  // briefly and then dismisses itself, which is exactly what the "Get started"
-  // button does (destroying the window lets the boot process continue).
-  let splashTimeout: NodeJS.Timeout|undefined
-
   onboardingWindow.once('ready-to-show', () => {
     onboardingWindow.show()
-    splashTimeout = setTimeout(() => {
-      if (!onboardingWindow.isDestroyed()) {
-        onboardingWindow.destroy()
-      }
-    }, SPLASH_DURATION_MS)
   })
 
   return await new Promise((resolve, reject) => {
@@ -115,13 +94,6 @@ export async function showOnboardingWindow (config: ConfigProvider, logger: LogP
     ipcMain.on('onboarding', (event, payload: OnboardingIPCMessage) => {
       if (payload.command === 'close') {
         onboardingWindow.destroy()
-      } else if (payload.command === 'cancel-splash') {
-        // The user interacted with the window, so keep it open and let them
-        // walk through the pages at their own pace.
-        if (splashTimeout !== undefined) {
-          clearTimeout(splashTimeout)
-          splashTimeout = undefined
-        }
       }
     })
 
@@ -145,9 +117,7 @@ export async function showOnboardingWindow (config: ConfigProvider, logger: LogP
     })
 
     onboardingWindow.on('closed', () => {
-      if (splashTimeout !== undefined) {
-        clearTimeout(splashTimeout)
-      }
+      console.log('CLOSED EVENT EMITTED')
       // NOTE: We must "destroy" the window, because otherwise 'closable: false'
       // will prevent programmatic closing.
       onboardingWindow.destroy()

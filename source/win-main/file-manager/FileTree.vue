@@ -230,14 +230,36 @@ const filterResults = computed<string[]>(() => {
   const filter = matchQuery(q, useTitle.value, useH1.value)
   const results: string[] = []
 
+  const matchedDirs: string[] = []
   for (const [ absPath, descriptor ] of workspaceStore.descriptorMap.entries()) {
     if (filter(descriptor)) {
       results.push(absPath)
+      if (descriptor.type === 'directory') {
+        matchedDirs.push(absPath)
+      }
+    }
+  }
+
+  // A directory matching the query shows all of its contents, not only those
+  // descendants that match the query themselves.
+  if (matchedDirs.length > 0) {
+    const matched = new Set(results)
+    for (const absPath of workspaceStore.descriptorMap.keys()) {
+      if (!matched.has(absPath) && isInsideAny(absPath, matchedDirs)) {
+        results.push(absPath)
+      }
     }
   }
 
   return results
 })
+
+/**
+ * Returns true if absPath lies within (not at) any of the given directories.
+ */
+function isInsideAny (absPath: string, dirs: string[]): boolean {
+  return dirs.some(dir => absPath.startsWith(dir) && (absPath[dir.length] === '/' || absPath[dir.length] === '\\'))
+}
 
 const getFiles = computed(() => {
   // NOTE: These are the root files. We'll only allow Markdown and code files here.
