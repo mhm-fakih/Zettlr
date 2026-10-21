@@ -37,6 +37,9 @@ Mixed-direction writing without fighting the caret.
 - **Application default:** Preferences → Editor → *Writing direction*.
 - Preview/print HTML emits `dir="auto"` on paragraphs, headings and table
   cells, so exports and previews match the editor.
+- Hanging indents (lines starting with whitespace, list or quote markers) are
+  applied from the right on RTL lines, so indented Arabic paragraphs stay in
+  view.
 - The note ToC mirrors for RTL documents (numbers on the right, indentation
   from the right). Direction is resolved from frontmatter `direction:`, then
   `lang:`, then the first strong character of the title/first heading.
@@ -169,7 +172,17 @@ hands it to Zettlr's regular Pandoc pipeline, so every export format works.
 
 ### 6. UI changes
 
-- **Left bar:** Manuscript panel (resizable) above the file explorer.
+- **Left bar:** Manuscript panel (resizable) above the file explorer, *Recent*
+  panel below it (see below).
+- **Recent panel:** *Recently created* lists the notes created yesterday or
+  today, read from the `YYYY_MM_DD-HHMMSS` date their filename starts with.
+  *Recently updated* lists the notes modified yesterday or today by OS
+  modification time — of the note itself or of anything in its companion
+  folder `<note>.d` (audio, transcripts). Each note appears once: created
+  notes are not repeated under updated. Click opens, middle-click opens in a
+  new tab; the panel is collapsible.
+- **File manager filter:** typing a folder's name shows the folder *with* its
+  contents, not just the folder.
 - **Right sidebar:** stacked collapsible panels instead of a tab bar — Table of
   contents, TODO, Codes, References, Related files, Other files. Every header
   stays visible; expanded panels share the height and scroll internally; the
@@ -178,12 +191,12 @@ hands it to Zettlr's regular Pandoc pipeline, so every export format works.
   (small / medium / large).
 - **Toolbar** hidden by default, toggle with **View → Toggle Toolbar**
   (`Ctrl/Cmd+Shift+9`). Sidebar shown by default (`Ctrl/Cmd+Shift+0`).
-- **Welcome window acts as a splash screen on every start:** it shows for 5
-  seconds with a "Starting in N…" countdown and then dismisses itself
-  (identical to clicking *Get started*). Upstream only shows this window on a
-  first install or after a version change; the fork adds a `splash` mode for
-  regular starts. Clicking or pressing a key cancels the countdown, so the
-  first-start setup pages can still be walked through.
+- **Splash screen only:** no welcome/onboarding window on startup (not even
+  on a first install or after an update) — just the splash screen with the
+  boot progress, shown immediately.
+- **No tray icon:** closing the last window quits the app (like a plain text
+  editor). The *Leave app running in the notification area* preference is
+  removed and `--launch-minimized` is ignored.
 - Accent color is dark blue instead of Zettlr green.
 
 ### 7. DB-sync field markers
@@ -260,6 +273,17 @@ yarn electron-builder --linux AppImage --x64 --publish never \
      --prepackaged out/Zettlr-linux-x64
 ```
 
+For a Debian package (`zettlr-nibras`; it does not conflict with a stock
+`zettlr` package, but both show up as "Zettlr" in the menu, so remove the stock
+one to avoid launching it by mistake):
+
+```bash
+yarn version:build
+NODE_ENV=production npm_config_arch=x64 yarn electron-forge make \
+     --platform=linux --arch=x64 --targets @electron-forge/maker-deb
+sudo apt install ./release/Zettlr-<version>-amd64.deb
+```
+
 Other targets (`yarn package:win-x64`, `release:mac-arm`, …) exist as in
 upstream, but Electron apps must be built on the platform they target.
 
@@ -300,6 +324,7 @@ git config user.email "you@example.com"
 | `source/app/service-providers/writer/` | Main-process index: file parser, manuscript tree, export assembly, IPC |
 | `source/win-main/sidebar/writer/` | Manuscript, TODO and Codes panels |
 | `source/win-main/sidebar/SidebarPanel.vue` | The collapsible panel shell |
+| `source/win-main/file-manager/RecentNotes.vue` | Recent panel (recently created / updated notes) |
 | `source/common/util/scan-todos.ts`, `scan-codes.ts`, `text-direction.ts`, `match-embed-target.ts` | Shared scanners/helpers (main and renderer) |
 | `source/types/common/writer.ts` | Shared types |
 | `test/writer-index.spec.ts` | Parser, scanner, tree and assembly tests |
@@ -323,3 +348,4 @@ git config user.email "you@example.com"
 | `export.manuscriptStripFieldMarkers` | Preferences → Import/Export | on |
 | `window.sidebarVisible` | View menu | on |
 | `window.showToolbar` | View → Toggle Toolbar | off |
+| `system.leaveAppRunning` | (removed; forced off — no tray) | off |

@@ -1,4 +1,35 @@
-# Upcoming
+# 4.6.3
+
+## GUI and Functionality
+
+- **Feature (fork)**: A *Recent* panel below the file manager lists the notes
+  *Recently created* yesterday or today (by the `YYYY_MM_DD-HHMMSS` date their
+  filename starts with), then the notes *Recently updated* yesterday or today
+  (by the OS modification time of the note or of anything in its companion
+  `<note>.d` folder). A note is listed at most once; created notes are not
+  repeated under updated.
+- **Change (fork)**: Startup shows only the splash screen. The welcome window
+  (countdown, *Get started*) is no longer shown, not even on a first start or
+  after an update, and the splash screen appears right away instead of after
+  one second.
+- **Change (fork)**: No tray icon. Closing the last window quits the app; the
+  *Leave app running in the notification area* preference is gone and
+  `--launch-minimized` is ignored.
+- **Change (fork)**: Filtering the file manager by a folder's name now shows
+  that folder's contents too (tree and list view), not only descendants whose
+  own names match.
+- Fixed RTL lines that start with whitespace (or a list/quote marker) being
+  pushed far out of the visible area, requiring a long horizontal scroll: the
+  hanging indent is now measured and applied from the right for RTL lines.
+
+## Under the Hood
+
+- `TrayProvider` forces `system.leaveAppRunning` off, which also resets
+  existing configs.
+- The `splash` mode of the onboarding window was removed again; the onboarding
+  window is no longer opened by the `ConfigProvider`.
+
+# 4.6.1
 
 ## GUI and Functionality
 
