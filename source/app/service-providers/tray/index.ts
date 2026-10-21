@@ -46,10 +46,6 @@ export default class TrayProvider extends ProviderContract {
     super()
     this._tray = null
 
-    // Writer fork: no tray icon -- closing the last window always quits the
-    // app, so the setting is forced off (this also resets older configs).
-    this._config.set('system.leaveAppRunning', false)
-
     this._config.on('update', (option: string) => {
       if (option === 'system.leaveAppRunning') {
         // even if the tray should not be shown, since we start in Tray we need to show it anyway
@@ -64,8 +60,11 @@ export default class TrayProvider extends ProviderContract {
 
   async boot (): Promise<void> {
     this._logger.verbose('Tray provider booting up ...')
-    // Writer fork: the tray is disabled (see constructor), so neither the
-    // setting nor the --launch-minimized flag adds one.
+    // Writer fork: no tray icon -- closing the last window always quits the
+    // app, so the setting is forced off (this also resets older configs). NOTE:
+    // This must happen here, not in the constructor, which runs before the
+    // ConfigProvider has read the config file and would be overwritten by it.
+    this._config.set('system.leaveAppRunning', false)
   }
 
   /**
