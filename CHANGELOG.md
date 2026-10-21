@@ -7,7 +7,15 @@
   filename starts with), then the notes *Recently updated* yesterday or today
   (by the OS modification time of the note or of anything in its companion
   `<note>.d` folder). A note is listed at most once; created notes are not
-  repeated under updated.
+  repeated under updated, and nothing inside a `.d` folder is listed on its
+  own.
+- **Feature (fork)**: The filter and the file explorer form a collapsible
+  *Files* panel, like *Manuscript* and *Recent*. The three left panels get a
+  third of the height each; Manuscript stays drag-resizable (its stored height
+  was reset) and collapsing a panel gives its room to the others.
+- **Change (fork)**: Note names display spaced out in the file explorer and the
+  Recent panel: `2026_10_21-101556~J~p3~D` shows as
+  `2026_10_21   10:15:56 J p3 D`. Display only; renaming edits the real name.
 - **Change (fork)**: Startup shows only the splash screen. The welcome window
   (countdown, *Get started*) is no longer shown, not even on a first start or
   after an update, and the splash screen appears right away instead of after
@@ -24,8 +32,10 @@
 
 ## Under the Hood
 
-- `TrayProvider` forces `system.leaveAppRunning` off, which also resets
-  existing configs.
+- `TrayProvider` forces `system.leaveAppRunning` off in `boot()` -- after the
+  config file is read, so it also resets existing configs.
+- New `formatNoteName()` (`source/common/util/format-note-name.ts`) for the
+  display form of note names.
 - The `splash` mode of the onboarding window was removed again; the onboarding
   window is no longer opened by the `ConfigProvider`.
 

@@ -172,15 +172,20 @@ hands it to Zettlr's regular Pandoc pipeline, so every export format works.
 
 ### 6. UI changes
 
-- **Left bar:** Manuscript panel (resizable) above the file explorer, *Recent*
-  panel below it (see below).
+- **Left bar:** three collapsible panels, a third of the height each —
+  *Manuscript* (drag-resizable; *Files* and *Recent* share what it leaves),
+  *Files* (the filter and the file explorer) and *Recent* (see below).
+  Collapsing a panel gives its room to the others.
 - **Recent panel:** *Recently created* lists the notes created yesterday or
   today, read from the `YYYY_MM_DD-HHMMSS` date their filename starts with.
   *Recently updated* lists the notes modified yesterday or today by OS
   modification time — of the note itself or of anything in its companion
   folder `<note>.d` (audio, transcripts). Each note appears once: created
-  notes are not repeated under updated. Click opens, middle-click opens in a
-  new tab; the panel is collapsible.
+  notes are not repeated under updated, and nothing inside a `.d` folder is
+  listed on its own. Click opens, middle-click opens in a new tab.
+- **Note names** display spaced out in the file explorer and the Recent panel:
+  `2026_10_21-101556~J~p3~D` shows as `2026_10_21   10:15:56 J p3 D` (the
+  time as HH:mm:ss, `~` as spaces). Display only — files keep their names.
 - **File manager filter:** typing a folder's name shows the folder *with* its
   contents, not just the folder.
 - **Right sidebar:** stacked collapsible panels instead of a tab bar — Table of
@@ -325,7 +330,7 @@ git config user.email "you@example.com"
 | `source/win-main/sidebar/writer/` | Manuscript, TODO and Codes panels |
 | `source/win-main/sidebar/SidebarPanel.vue` | The collapsible panel shell |
 | `source/win-main/file-manager/RecentNotes.vue` | Recent panel (recently created / updated notes) |
-| `source/common/util/scan-todos.ts`, `scan-codes.ts`, `text-direction.ts`, `match-embed-target.ts` | Shared scanners/helpers (main and renderer) |
+| `source/common/util/scan-todos.ts`, `scan-codes.ts`, `text-direction.ts`, `match-embed-target.ts`, `format-note-name.ts` | Shared scanners/helpers (main and renderer) |
 | `source/types/common/writer.ts` | Shared types |
 | `test/writer-index.spec.ts` | Parser, scanner, tree and assembly tests |
 | `test/match-embed-target.spec.ts` | Include-line recognition tests |
