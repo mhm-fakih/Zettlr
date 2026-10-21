@@ -107,7 +107,7 @@
     <!-- Notes created or updated yesterday and today, below the file explorer -->
     <div
       id="file-manager-recent"
-      v-bind:class="{ expanded: !recentCollapsed, 'fill-column': filesCollapsed }"
+      v-bind:class="{ expanded: !recentCollapsed }"
     >
       <SidebarPanel
         v-bind:label="recentLabel"
@@ -183,15 +183,18 @@ function toggleRecent (): void {
   window.localStorage.setItem(RECENT_COLLAPSED_KEY, String(recentCollapsed.value))
 }
 
-// The panel's height (percent of the file manager column) is user-resizable
-const MANUSCRIPT_HEIGHT_KEY = 'file-manager-manuscript-height'
+// The panel's height (percent of the file manager column) is user-resizable.
+// By default the three left panels (Manuscript, Files, Recent) get a third
+// each; the Files and Recent panels share whatever Manuscript leaves. (The key
+// was renamed when the default changed from 60%, so old heights are dropped.)
+const MANUSCRIPT_HEIGHT_KEY = 'file-manager-manuscript-height-v2'
 const MANUSCRIPT_MIN_HEIGHT = 10
 const MANUSCRIPT_MAX_HEIGHT = 85
 const manuscriptHeight = ref<number>(loadManuscriptHeight())
 
 function loadManuscriptHeight (): number {
   const stored = Number(window.localStorage.getItem(MANUSCRIPT_HEIGHT_KEY))
-  return Number.isFinite(stored) && stored > 0 ? stored : 60
+  return Number.isFinite(stored) && stored > 0 ? stored : 100 / 3
 }
 
 function startResize (event: MouseEvent): void {
@@ -571,25 +574,19 @@ body #file-manager {
     }
   }
 
-  // The recent notes list below the file explorer: as high as its content,
-  // but at most 35% of the column (it scrolls internally beyond that) and it
-  // shrinks down to its header when the explorer needs the room
+  // The recent notes list below the file explorer: shares the height below
+  // the manuscript equally with the explorer while expanded (it scrolls
+  // internally), only its header while collapsed
   #file-manager-recent {
-    flex: 0 1 auto;
-    min-height: 34px;
+    flex: 0 0 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     border-top: 1px solid rgba(128, 128, 128, 0.35);
     padding-top: 4px;
 
-    &.expanded { max-height: 35%; }
-
-    // With the explorer collapsed, the list may use all remaining height
-    &.expanded.fill-column {
-      flex: 1 1 0;
-      max-height: none;
-    }
+    &.expanded { flex: 1 1 0; }
 
     section.sidebar-panel:not(.collapsed) {
       flex: 1 1 auto;
