@@ -92,6 +92,20 @@
       ></FileList>
     </div>
 
+    <!-- Notes created or updated yesterday and today, below the file explorer -->
+    <div
+      id="file-manager-recent"
+      v-bind:class="{ expanded: !recentCollapsed }"
+    >
+      <SidebarPanel
+        v-bind:label="recentLabel"
+        v-bind:collapsed="recentCollapsed"
+        v-on:toggle="toggleRecent"
+      >
+        <RecentNotes v-bind:window-id="props.windowId"></RecentNotes>
+      </SidebarPanel>
+    </div>
+
   </div>
 </template>
 
@@ -113,6 +127,7 @@ import FileTree from './FileTree.vue'
 import FileList from './FileList.vue'
 import SidebarPanel from '../sidebar/SidebarPanel.vue'
 import ManuscriptTab from '../sidebar/writer/ManuscriptTab.vue'
+import RecentNotes from './RecentNotes.vue'
 import { trans } from '@common/i18n-renderer'
 import { nextTick, ref, computed, watch, onMounted } from 'vue'
 import { useConfigStore } from 'source/pinia'
@@ -134,6 +149,16 @@ const manuscriptCollapsed = ref<boolean>(window.localStorage.getItem(MANUSCRIPT_
 function toggleManuscript (): void {
   manuscriptCollapsed.value = !manuscriptCollapsed.value
   window.localStorage.setItem(MANUSCRIPT_COLLAPSED_KEY, String(manuscriptCollapsed.value))
+}
+
+// The recent notes panel below the file explorer (writer fork)
+const RECENT_COLLAPSED_KEY = 'file-manager-recent-collapsed'
+const recentLabel = trans('Recent')
+const recentCollapsed = ref<boolean>(window.localStorage.getItem(RECENT_COLLAPSED_KEY) === 'true')
+
+function toggleRecent (): void {
+  recentCollapsed.value = !recentCollapsed.value
+  window.localStorage.setItem(RECENT_COLLAPSED_KEY, String(recentCollapsed.value))
 }
 
 // The panel's height (percent of the file manager column) is user-resizable
@@ -493,6 +518,24 @@ body #file-manager {
       background-color: rgba(128, 128, 128, 0.35);
 
       &:hover { background-color: var(--system-accent-color, rgba(128, 128, 128, 0.6)); }
+    }
+  }
+
+  // The recent notes list below the file explorer: as high as its content,
+  // but at most 35% of the column (it scrolls internally beyond that)
+  #file-manager-recent {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-top: 1px solid rgba(128, 128, 128, 0.35);
+    padding-top: 4px;
+
+    &.expanded { max-height: 35%; }
+
+    section.sidebar-panel:not(.collapsed) {
+      flex: 1 1 auto;
+      min-height: 0;
     }
   }
 
