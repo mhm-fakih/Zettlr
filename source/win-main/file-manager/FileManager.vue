@@ -51,51 +51,63 @@
       ></div>
     </div>
 
-    <!-- Filter field -->
-    <div class="file-manager-filter">
-      <input
-        ref="quickFilter"
-        v-model="filterQuery"
-        class="file-manager-filter-input"
-        type="search"
-        v-bind:placeholder="filterPlaceholder"
-        v-on:focus="($event.target as HTMLInputElement).select()"
-        v-on:blur="handleQuickFilterBlur"
-      />
-    </div>
+    <!-- The file explorer (filter + tree/list) as a collapsible panel -->
+    <div
+      id="file-manager-files"
+      v-bind:class="{ expanded: !filesCollapsed }"
+    >
+      <SidebarPanel
+        v-bind:label="filesLabel"
+        v-bind:collapsed="filesCollapsed"
+        v-on:toggle="toggleFiles"
+      >
+        <!-- Filter field -->
+        <div class="file-manager-filter">
+          <input
+            ref="quickFilter"
+            v-model="filterQuery"
+            class="file-manager-filter-input"
+            type="search"
+            v-bind:placeholder="filterPlaceholder"
+            v-on:focus="($event.target as HTMLInputElement).select()"
+            v-on:blur="handleQuickFilterBlur"
+          />
+        </div>
 
-    <div id="component-container">
-      <!-- Render a the file-tree -->
-      <FileTree
-        ref="fileTreeComponent"
-        v-bind:is-visible="fileTreeVisible"
-        v-bind:filter-query="filterQuery"
-        v-bind:window-id="props.windowId"
-        v-on:selection="selectionListener"
-        v-on:toggle-file-list="toggleFileList"
-      ></FileTree>
-      <!-- Now render the file list -->
-      <!--
-        Why are we using both class: hidden (via isFileListVisible) as well
-        as v-show? Well, there is a super weird display glitch that will show
-        the file list and overlay it over the file tree if we start the app in
-        combined mode sometimes. This somehow fixes it, but if anyone has an
-        idea what is happening, please come forward.
-      -->
-      <FileList
-        v-show="!isCombined"
-        ref="fileListComponent"
-        v-bind:is-visible="isFileListVisible"
-        v-bind:filter-query="filterQuery"
-        v-bind:window-id="props.windowId"
-        v-on:lock-file-tree="lockDirectoryTree()"
-      ></FileList>
+        <div id="component-container">
+          <!-- Render a the file-tree -->
+          <FileTree
+            ref="fileTreeComponent"
+            v-bind:is-visible="fileTreeVisible"
+            v-bind:filter-query="filterQuery"
+            v-bind:window-id="props.windowId"
+            v-on:selection="selectionListener"
+            v-on:toggle-file-list="toggleFileList"
+          ></FileTree>
+          <!-- Now render the file list -->
+          <!--
+            Why are we using both class: hidden (via isFileListVisible) as well
+            as v-show? Well, there is a super weird display glitch that will show
+            the file list and overlay it over the file tree if we start the app in
+            combined mode sometimes. This somehow fixes it, but if anyone has an
+            idea what is happening, please come forward.
+          -->
+          <FileList
+            v-show="!isCombined"
+            ref="fileListComponent"
+            v-bind:is-visible="isFileListVisible"
+            v-bind:filter-query="filterQuery"
+            v-bind:window-id="props.windowId"
+            v-on:lock-file-tree="lockDirectoryTree()"
+          ></FileList>
+        </div>
+      </SidebarPanel>
     </div>
 
     <!-- Notes created or updated yesterday and today, below the file explorer -->
     <div
       id="file-manager-recent"
-      v-bind:class="{ expanded: !recentCollapsed }"
+      v-bind:class="{ expanded: !recentCollapsed, 'fill-column': filesCollapsed }"
     >
       <SidebarPanel
         v-bind:label="recentLabel"
@@ -149,6 +161,16 @@ const manuscriptCollapsed = ref<boolean>(window.localStorage.getItem(MANUSCRIPT_
 function toggleManuscript (): void {
   manuscriptCollapsed.value = !manuscriptCollapsed.value
   window.localStorage.setItem(MANUSCRIPT_COLLAPSED_KEY, String(manuscriptCollapsed.value))
+}
+
+// The file explorer panel (writer fork)
+const FILES_COLLAPSED_KEY = 'file-manager-files-collapsed'
+const filesLabel = trans('Files')
+const filesCollapsed = ref<boolean>(window.localStorage.getItem(FILES_COLLAPSED_KEY) === 'true')
+
+function toggleFiles (): void {
+  filesCollapsed.value = !filesCollapsed.value
+  window.localStorage.setItem(FILES_COLLAPSED_KEY, String(filesCollapsed.value))
 }
 
 // The recent notes panel below the file explorer (writer fork)
@@ -522,6 +544,33 @@ body #file-manager {
     }
   }
 
+  // The collapsible panel around the filter and the explorer: takes the
+  // remaining height while expanded, only its header while collapsed
+  #file-manager-files {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-top: 1px solid rgba(128, 128, 128, 0.35);
+    padding-top: 4px;
+
+    &.expanded { flex: 1 1 0; }
+
+    section.sidebar-panel:not(.collapsed) {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+
+    // The explorer scrolls by itself; the panel body only stacks filter and
+    // explorer
+    div.sidebar-panel-body {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 0;
+    }
+  }
+
   // The recent notes list below the file explorer: as high as its content,
   // but at most 35% of the column (it scrolls internally beyond that) and it
   // shrinks down to its header when the explorer needs the room
@@ -535,6 +584,12 @@ body #file-manager {
     padding-top: 4px;
 
     &.expanded { max-height: 35%; }
+
+    // With the explorer collapsed, the list may use all remaining height
+    &.expanded.fill-column {
+      flex: 1 1 0;
+      max-height: none;
+    }
 
     section.sidebar-panel:not(.collapsed) {
       flex: 1 1 auto;
