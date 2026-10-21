@@ -82,15 +82,7 @@ export function getAdvancedFields (config: ConfigOptions): PreferencesFieldset[]
           model: 'window.vibrancy',
           disabled: process.platform !== 'darwin'
         },
-        {
-          type: 'checkbox',
-          label: process.platform === 'darwin'
-            ? trans('Show app in the notification area')
-            : trans('Leave app running in the notification area'),
-          model: 'system.leaveAppRunning',
-          disabled: process.env.ZETTLR_IS_TRAY_SUPPORTED === '0',
-          info: process.env.ZETTLR_TRAY_ERROR
-        },
+        // Writer fork: no tray, so no "leave app running" option
         { type: 'separator' },
         {
           type: 'radio',

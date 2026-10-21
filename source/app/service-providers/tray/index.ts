@@ -25,7 +25,6 @@ import ProviderContract from '../provider-contract'
 import type WindowProvider from '../windows'
 import type LogProvider from '../log'
 import type ConfigProvider from '@providers/config'
-import { getCLIArgument, LAUNCH_MINIMIZED } from '@providers/cli-provider'
 
 /**
  * This class generates the Tray in the system notification area
@@ -47,9 +46,9 @@ export default class TrayProvider extends ProviderContract {
     super()
     this._tray = null
 
-    if (process.env.ZETTLR_IS_TRAY_SUPPORTED === '0') {
-      this._config.set('system.leaveAppRunning', false)
-    }
+    // Writer fork: no tray icon -- closing the last window always quits the
+    // app, so the setting is forced off (this also resets older configs).
+    this._config.set('system.leaveAppRunning', false)
 
     this._config.on('update', (option: string) => {
       if (option === 'system.leaveAppRunning') {
@@ -65,21 +64,8 @@ export default class TrayProvider extends ProviderContract {
 
   async boot (): Promise<void> {
     this._logger.verbose('Tray provider booting up ...')
-    let addToTray: boolean = this._config.get('system.leaveAppRunning')
-    const shouldStartMinimized = getCLIArgument(LAUNCH_MINIMIZED) === true
-    const traySupported = process.env.ZETTLR_IS_TRAY_SUPPORTED === '1'
-
-    if (shouldStartMinimized && !addToTray && traySupported) {
-      this._logger.info('[Tray Provider] Detected the --launch-minimized flag. Will override the tray setting.')
-      // The user has indicated via CLI flag that they want to start the app
-      // minimized, so we require the corresponding setting to be set
-      this._config.set('system.leaveAppRunning', true)
-      addToTray = true
-    }
-
-    if (addToTray) {
-      this.add()
-    }
+    // Writer fork: the tray is disabled (see constructor), so neither the
+    // setting nor the --launch-minimized flag adds one.
   }
 
   /**

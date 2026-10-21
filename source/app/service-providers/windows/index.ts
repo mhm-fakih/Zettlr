@@ -56,7 +56,6 @@ import { DP_EVENTS } from '@dts/common/documents'
 import { trans } from '@common/i18n-main'
 import type ConfigProvider from '@providers/config'
 import PersistentDataContainer from '@common/modules/persistent-data-container'
-import { getCLIArgument, LAUNCH_MINIMIZED } from '@providers/cli-provider'
 import type { PasteModalResult } from '../commands/save-image-from-clipboard'
 
 export interface RequestFilesIPCAPI {
@@ -130,10 +129,9 @@ export default class WindowProvider extends ProviderContract {
     this._stateContainer = new PersistentDataContainer(this._configFile, 'yaml', 1000)
     this._lastMainWindow = { windowId: undefined }
 
-    // If the corresponding CLI flag is passed, we should suppress opening of
-    // any windows until the user has manually activated the app by utilizing
-    // the tray menu.
-    this.suppressWindowOpening = getCLIArgument(LAUNCH_MINIMIZED) === true
+    // Writer fork: there is no tray to bring a hidden app back, so the
+    // --launch-minimized flag is ignored and windows always open.
+    this.suppressWindowOpening = false
 
     // Detect whether we have an RTL locale for correct traffic light positions.
     const schema = bcp47.parse(app.getLocale())
