@@ -184,6 +184,7 @@ import {
   hasPDFExt,
   hasExt
 } from 'source/common/util/file-extention-checks'
+import { isDotFile } from 'source/common/util/ignore-path'
 import type { FSALEventPayload, FSALEventPayloadChange } from 'source/app/service-providers/fsal'
 import { getSorter } from 'source/common/util/directory-sorter'
 import type { WritingTarget } from 'source/app/service-providers/targets'
@@ -362,6 +363,7 @@ const filteredChildren = computed(() => {
     return []
   }
 
+  const { files } = configStore.config
   const filter = filterDescriptorChildren()
 
   return children.value
@@ -376,7 +378,7 @@ const filteredChildren = computed(() => {
     // Filter based on our rules
     .filter(child => {
       if (!combined.value) {
-        return child.type === 'directory' && filter(child)
+        return child.type === 'directory' && (files.dotFiles.showInFilemanager || !isDotFile(child.name))
       }
 
       return filter(child)

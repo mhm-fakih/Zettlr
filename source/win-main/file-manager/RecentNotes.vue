@@ -127,15 +127,34 @@ const notesByBase = computed(() => {
   }
 
   // Transcripts etc. inside companion folders are Markdown files themselves,
-  // but they belong to their note and are no notes of their own.
+  // but they belong to a note and are no notes of their own -- even if that
+  // note no longer exists.
   for (const [ base, descriptor ] of [...notes]) {
-    if (findOwningNote(descriptor.path, notes) !== undefined) {
+    if (isInCompanionFolder(descriptor.path)) {
       notes.delete(base)
     }
   }
 
   return notes
 })
+
+/**
+ * Returns true if absPath lies within a folder named like a companion folder.
+ */
+function isInCompanionFolder (absPath: string): boolean {
+  let current = pathDirname(absPath)
+  while (true) {
+    if (pathExtname(current) === COMPANION_EXT) {
+      return true
+    }
+
+    const parent = pathDirname(current)
+    if (parent === current || parent === '' || parent === '.') {
+      return false
+    }
+    current = parent
+  }
+}
 
 /**
  * Returns the note whose companion folder contains absPath (or is absPath).
