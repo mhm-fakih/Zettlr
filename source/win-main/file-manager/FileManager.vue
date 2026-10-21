@@ -487,7 +487,8 @@ body #file-manager {
     // The explorer takes all height the ToC panel below doesn't use
     // (flex-basis overrides the platform-specific height rules below)
     flex: 1 1 0px;
-    min-height: 0;
+    // Keep the explorer usable: the recent panel below gives way first
+    min-height: 150px;
     height: calc(100% - 37px); // 100% minus the filter
   }
 
@@ -522,9 +523,11 @@ body #file-manager {
   }
 
   // The recent notes list below the file explorer: as high as its content,
-  // but at most 35% of the column (it scrolls internally beyond that)
+  // but at most 35% of the column (it scrolls internally beyond that) and it
+  // shrinks down to its header when the explorer needs the room
   #file-manager-recent {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-height: 34px;
     display: flex;
     flex-direction: column;
     overflow: hidden;

@@ -263,7 +263,9 @@ body div.recent-notes {
     font-weight: bold;
     text-transform: uppercase;
     opacity: 0.7;
-    margin: 6px 0 2px 0;
+    margin: 14px 0 6px 0;
+
+    &:first-child { margin-top: 4px; }
   }
 
   p.recent-notes-empty {
@@ -276,7 +278,10 @@ body div.recent-notes {
     display: flex;
     gap: 6px;
     align-items: baseline;
-    padding: 2px 4px;
+    padding: 3px 4px;
+    // A roomy line height; also keeps underscores in filenames from being
+    // clipped by the ellipsis overflow
+    line-height: 20px;
     border-radius: 4px;
     cursor: pointer;
 
