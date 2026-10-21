@@ -165,6 +165,7 @@
  */
 
 import generateFilename from '@common/util/generate-filename'
+import formatNoteName from '@common/util/format-note-name'
 import { trans } from '@common/i18n-renderer'
 import PopoverDirProps from './util/PopoverDirProps.vue'
 import PopoverFileProps from './util/PopoverFileProps.vue'
@@ -434,7 +435,7 @@ const displayMdExtensions = computed(() => configStore.config.display.markdownFi
 
 const basename = computed(() => {
   if (props.item.type !== 'file') {
-    return props.item.name
+    return formatNoteName(props.item.name)
   }
 
   if (useTitle.value && props.item.yamlTitle !== undefined) {
@@ -442,9 +443,9 @@ const basename = computed(() => {
   } else if (useH1.value && props.item.firstHeading !== null) {
     return props.item.firstHeading
   } else if (displayMdExtensions.value) {
-    return props.item.name
+    return formatNoteName(props.item.name)
   } else {
-    return props.item.name.replace(props.item.ext, '')
+    return formatNoteName(props.item.name.replace(props.item.ext, ''))
   }
 })
 

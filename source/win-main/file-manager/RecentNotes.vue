@@ -59,6 +59,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { trans } from '@common/i18n-renderer'
 import { useConfigStore, useDocumentTreeStore, useWorkspaceStore } from 'source/pinia'
 import { pathDirname, pathExtname } from '@common/util/renderer-path-polyfill'
+import formatNoteName from '@common/util/format-note-name'
 import type { MDFileDescriptor } from '@dts/common/fsal'
 import type { DocumentManagerIPCAPI } from 'source/app/service-providers/documents'
 
@@ -230,9 +231,9 @@ function getDisplayName (descriptor: MDFileDescriptor): string {
   } else if (useH1.value && descriptor.firstHeading !== null) {
     return descriptor.firstHeading
   } else if (displayMdExtensions.value) {
-    return descriptor.name
+    return formatNoteName(descriptor.name)
   } else {
-    return descriptor.name.replace(descriptor.ext, '')
+    return formatNoteName(descriptor.name.replace(descriptor.ext, ''))
   }
 }
 

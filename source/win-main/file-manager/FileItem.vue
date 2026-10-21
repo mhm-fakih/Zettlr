@@ -153,6 +153,7 @@
  */
 
 import { trans } from '@common/i18n-renderer'
+import formatNoteName from '@common/util/format-note-name'
 import formatDate from '@common/util/format-date'
 import localiseNumber from '@common/util/localise-number'
 import formatSize from '@common/util/format-size'
@@ -255,7 +256,7 @@ const {
 // the reactivity in conjunction with the recycle-scroller.
 const basename = computed(() => {
   if (props.item.type !== 'file') {
-    return props.item.name
+    return formatNoteName(props.item.name)
   }
 
   if (useTitle.value && props.item.yamlTitle !== undefined) {
@@ -263,9 +264,9 @@ const basename = computed(() => {
   } else if (useH1.value && props.item.firstHeading !== null) {
     return props.item.firstHeading
   } else if (displayMdExtensions.value) {
-    return props.item.name
+    return formatNoteName(props.item.name)
   } else {
-    return props.item.name.replace(props.item.ext, '')
+    return formatNoteName(props.item.name.replace(props.item.ext, ''))
   }
 })
 
