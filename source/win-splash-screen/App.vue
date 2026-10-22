@@ -6,6 +6,11 @@
     </div>
     <div id="info">
       <h1>Zettlr</h1>
+      <!-- Writer fork: tell this build apart from stock Zettlr at a glance -->
+      <p id="version">
+        <span v-if="version !== ''">{{ version }}</span>
+        <span class="fork-label">fork</span>
+      </p>
       <p>Your One-Stop Publication Workbench</p>
       <p>&copy; 2017&ndash;{{ year }} Hendrik Erz</p>
     </div>
@@ -48,6 +53,11 @@ const ipcRenderer = window.ipc
 const stepLabel = ref(trans('Loading…'))
 const stepPercentage = ref(0)
 const year = (new Date()).getFullYear()
+const version = ref('')
+
+ipcRenderer.on('app-version', (event, appVersion: string) => {
+  version.value = appVersion
+})
 
 ipcRenderer.on('step-update', (event, { currentStepMessage, currentStepPercentage }) => {
   stepLabel.value = currentStepMessage
@@ -57,6 +67,24 @@ ipcRenderer.on('step-update', (event, { currentStepMessage, currentStepPercentag
 </script>
 
 <style lang="less">
+
+#version {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+
+  .fork-label {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: white;
+    background-color: #c0392b;
+  }
+}
 
 body {
   font-family: system-ui, sans-serif;

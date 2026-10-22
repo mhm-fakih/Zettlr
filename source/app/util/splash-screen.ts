@@ -19,7 +19,7 @@
  */
 
 import type LogProvider from '@providers/log'
-import { BrowserWindow } from 'electron'
+import { app, BrowserWindow } from 'electron'
 
 let splashScreen: BrowserWindow|undefined
 
@@ -74,6 +74,7 @@ export function showSplashScreen (logger: LogProvider): void {
 
   splashScreen.once('ready-to-show', () => {
     splashScreen?.show()
+    splashScreen?.webContents.send('app-version', app.getVersion())
     updateSplashScreen(initSplashScreenMessage, initSplashScreenPercent)
   })
 
