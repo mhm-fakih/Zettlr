@@ -189,6 +189,7 @@ import type { FSALEventPayload, FSALEventPayloadChange } from 'source/app/servic
 import { getSorter } from 'source/common/util/directory-sorter'
 import type { WritingTarget } from 'source/app/service-providers/targets'
 import { filterDescriptorChildren } from './util/filter-children'
+import getDocumentTitle from '../util/get-document-title'
 
 const ipcRenderer = window.ipc
 
@@ -429,24 +430,17 @@ const projectSortedFilteredChildren = computed(() => {
   return projectFiles.concat(files)
 })
 
-const useH1 = computed(() => configStore.config.fileNameDisplay.includes('heading'))
-const useTitle = computed(() => configStore.config.fileNameDisplay.includes('title'))
-const displayMdExtensions = computed(() => configStore.config.display.markdownFileExtensions)
-
 const basename = computed(() => {
   if (props.item.type !== 'file') {
     return formatNoteName(props.item.name)
   }
 
-  if (useTitle.value && props.item.yamlTitle !== undefined) {
-    return props.item.yamlTitle
-  } else if (useH1.value && props.item.firstHeading !== null) {
-    return props.item.firstHeading
-  } else if (displayMdExtensions.value) {
-    return formatNoteName(props.item.name)
-  } else {
-    return formatNoteName(props.item.name.replace(props.item.ext, ''))
+  // Writer fork: tidy up the note's filename, but leave titles and headings
+  const title = getDocumentTitle(props.item)
+  if (title === props.item.name || title === props.item.name.replace(props.item.ext, '')) {
+    return formatNoteName(title)
   }
+  return title
 })
 
 const isSelected = computed(() => {

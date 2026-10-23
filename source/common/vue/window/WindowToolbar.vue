@@ -140,11 +140,15 @@ const hasRTLTrafficLights = ref<boolean>(false)
 
 const scrollArea = ref<HTMLDivElement|null>(null)
 const canScroll = ref(false)
+// To account for really small differences between `scrollWidth` and `clientWidth`
+// (sometimes only fractions of a pixel), add a small additional tolerance to
+// `clientWidth` to prevent erroneously displaying of the scroll buttons.
+const clientWidthTolerance = 5
 
 function checkOverflow () {
   if (scrollArea.value) {
     const sa = scrollArea.value
-    canScroll.value = sa.scrollWidth > sa.clientWidth
+    canScroll.value = sa.scrollWidth > (sa.clientWidth + clientWidthTolerance)
   }
 }
 
@@ -191,6 +195,7 @@ body div#toolbar {
   height: 40px;
   padding: 5px 10px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
   position: relative;
 
@@ -238,6 +243,10 @@ body div#toolbar {
 
   button {
     cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 10px;
   }
 }
 
@@ -268,7 +277,6 @@ body.darwin {
       border-radius: 4px;
       background-color: transparent;
       border: none;
-      padding: 4px 8px;
 
       &:hover, &.toolbar-overflow {
         background-color: rgb(230, 230, 230);
@@ -307,7 +315,6 @@ body.win32 {
     button {
       background-color: transparent;
       border: none;
-      padding: 4px 8px;
 
       &:hover, &.toolbar-overflow {
         background-color: rgb(230, 230, 230);
@@ -351,10 +358,7 @@ body.linux {
     button {
       background-color: transparent;
       border: 1px solid rgb(180, 180, 180);
-      padding: 0px;
       border-radius: @border-radius;
-      width: 35px;
-      height: 25px;
       margin: 0 4px;
 
       &:hover, &.toolbar-overflow {
