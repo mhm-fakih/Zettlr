@@ -70,7 +70,7 @@ ipcRenderer.on('step-update', (event, { currentStepMessage, currentStepPercentag
 
 #version {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: 8px;
 
