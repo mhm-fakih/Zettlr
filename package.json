@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git://github.com/Zettlr/Zettlr.git"
   },
-  "version": "4.8.0+9358",
+  "version": "4.8.0+9360",
   "license": "GPL-3.0",
   "description": "A fork of Zettlr, optimized for Arabic typing and nested notes, TODOs, and (later) Nibras PKM integration.",
   "main": ".webpack/main",
